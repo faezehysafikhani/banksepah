@@ -1,7 +1,8 @@
 import { env } from "./env";
 
-const ADMIN_SALT = "a766b23499fb1dacda90c0949bf86529";
-const ADMIN_HASH = "3c7ecdca3ac96c0f4544ab2aa4387e2f1cbf62e7083f52c5313eee6af3ac5e58";
+// Seeded admin login: username "admin", password "Admin@123".
+const ADMIN_SALT = "560153f3829af1fa9d69c9dab548e03a";
+const ADMIN_HASH = "31927aa8e1a293f8122401206f81d27a8b3bfe6b3d512e2617a6b29346458481";
 const PBKDF2_ITERATIONS = 120_000;
 
 export const SESSION_COOKIE = "sepah_session";
