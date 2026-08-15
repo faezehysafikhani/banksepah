@@ -36,8 +36,12 @@ yarn-error.log*
 
 /dist/
 /.wrangler/
+/.output/
 /outputs/
 /work/
+
+# local libSQL dev database (Turso is used in production)
+/.data/
 
 # local dev server logs
 .dev-server.log
