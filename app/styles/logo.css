@@ -1,0 +1,104 @@
+/*
+ * Sepah Bank logo & brand-mark styles
+ * Extracted from app/globals.css so every place the brand mark appears
+ * is defined in one file instead of scattered across the dashboard/login CSS.
+ *
+ * Source assets (public/):
+ *   mob.banking.android.sepah_512x512.webp  256x256  — app/avatar mark:
+ *     used wherever a small square icon represents the bank (loading
+ *     screen, sidebar brand, mobile login header).
+ *   sepah-emblem.png                        333x380  — large ceremonial
+ *     emblem used only as the oversized watermark behind the login screen.
+ *   images.jpg                              447x447  — secondary square
+ *     logo used in the login page's left brand panel topline.
+ *
+ * Do not resize these source files; scale them with CSS (object-fit: cover)
+ * as done below so they stay crisp at every usage size.
+ */
+
+/* Loading screen emblem (small square mark, rounded-square frame) */
+.loading-emblem {
+  width: 92px;
+  height: 92px;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(1, 10, 16, 0.4);
+}
+.loading-emblem img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Login page: oversized ceremonial emblem watermark, tilts with cursor */
+.login-watermark {
+  position: absolute;
+  z-index: 0;
+  width: min(56vw, 820px);
+  aspect-ratio: 1;
+  top: 48%;
+  left: 78%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  perspective: 1400px;
+}
+.watermark-stage {
+  position: relative;
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  transform-style: preserve-3d;
+  transform: rotateY(calc(var(--tilt-x, 0) * 11deg)) rotateX(calc(var(--tilt-y, 0) * -9deg));
+  transition: transform .5s cubic-bezier(.2,.8,.2,1);
+  animation: watermarkBreathe 9s ease-in-out infinite alternate;
+}
+.watermark-glow {
+  position: absolute; inset: -6%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.16) 0%, rgba(255,255,255,.07) 40%, transparent 74%);
+  filter: blur(34px);
+  transform: translateZ(-30px);
+}
+.watermark-stage img {
+  width: 78%; height: auto; object-fit: contain;
+  opacity: .14;
+  filter: brightness(0) invert(1) drop-shadow(0 4px 14px rgba(0,0,0,.2)) drop-shadow(0 30px 55px rgba(0,0,0,.3));
+  transform: translateZ(46px);
+}
+.watermark-halo { position: absolute; border-radius: 50%; border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 0 80px rgba(255,255,255,.06), 0 30px 90px rgba(1,10,16,.18); }
+.halo-one { inset: 2%; transform: translateZ(10px); animation: watermarkFloat 8s ease-in-out infinite alternate; }
+.halo-two { inset: 14%; border-color: rgba(237,107,45,.3); transform: translateZ(-14px); animation: watermarkFloat 10s ease-in-out infinite alternate-reverse; }
+.halo-three { inset: 26%; border-color: rgba(140,222,240,.34); transform: translateZ(24px); animation: watermarkFloat 7s ease-in-out infinite alternate; }
+@keyframes watermarkFloat { to { transform: translateY(-10px) scale(1.02); } }
+@keyframes watermarkBreathe { to { transform: rotateY(calc(var(--tilt-x, 0) * 11deg + 2deg)) rotateX(calc(var(--tilt-y, 0) * -9deg - 1deg)) scale(1.015); } }
+
+/* Login page: small square logo in the left brand panel topline */
+.brand-logo-small {
+  width: 50px; height: 50px;
+  border-radius: 15px;
+  overflow: hidden;
+  display: block;
+  border: 1px solid rgba(255,255,255,.34);
+  box-shadow: 0 12px 28px rgba(0,0,0,.18);
+}
+.brand-logo-small img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Login page: mobile-only header logo (hidden on desktop, see globals.css breakpoints) */
+.login-mobile-logo { display: none; }
+
+/* Dashboard sidebar: app mark next to "بانک سپه" wordmark */
+.sidebar-brand img {
+  width: 46px; height: 46px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 8px 22px rgba(0,0,0,.25);
+}
+
+/* Below 820px the desktop brand panel is hidden, so the mobile logo takes over (see globals.css breakpoints) */
+@media (max-width: 820px) {
+  .login-mobile-logo {
+    display: block;
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 12px 28px rgba(8,67,92,.17);
+  }
+  .login-mobile-logo img { width: 100%; height: 100%; object-fit: cover; }
+}
