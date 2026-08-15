@@ -66,19 +66,16 @@ function createDb(): LibsqlD1Database {
   const url = process.env.TURSO_DATABASE_URL;
   const authToken = process.env.TURSO_AUTH_TOKEN;
 
-  if (!url) {
-    if (process.env.VERCEL) {
-      throw new Error(
-        "TURSO_DATABASE_URL is not set. Add TURSO_DATABASE_URL (and TURSO_AUTH_TOKEN) " +
-          "to your Vercel project's Environment Variables, then redeploy.",
-      );
-    }
-    // Local dev fallback: a file-based libSQL database, no cloud account needed.
-    mkdirSync(".data", { recursive: true });
-    return new LibsqlD1Database(createClient({ url: "file:.data/local.db" }));
+  if (url) {
+    return new LibsqlD1Database(createClient({ url, authToken }));
   }
 
-  return new LibsqlD1Database(createClient({ url, authToken }));
+  // No external database configured: fall back to a file-based libSQL database
+  // with no cloud account needed. On Vercel the only writable path is /tmp, so
+  // data there resets whenever the function's container is recycled.
+  const dir = process.env.VERCEL ? "/tmp/.data" : ".data";
+  mkdirSync(dir, { recursive: true });
+  return new LibsqlD1Database(createClient({ url: `file:${dir}/local.db` }));
 }
 
 export const env = {
