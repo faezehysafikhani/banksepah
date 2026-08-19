@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 
 test("ships the Sepah project-management experience", async () => {
-  const [page, projects, operations, strategy, reports, users, calendar, persianInputs, wbs, layout, css, hosting, backend, eventsApi, usersApi] = await Promise.all([
+  const [page, projects, operations, strategy, reports, users, calendar, persianInputs, wbs, layout, css, hosting, backend, eventsApi, usersApi, projectsApi, seedData] = await Promise.all([
     readFile(new URL("app/page.tsx", root), "utf8"),
     readFile(new URL("app/components/ProjectsWorkspace.tsx", root), "utf8"),
     readFile(new URL("app/components/OperationsWorkspace.tsx", root), "utf8"),
@@ -21,6 +21,8 @@ test("ships the Sepah project-management experience", async () => {
     readFile(new URL("backend/Sepah.Pmo.Api/Program.cs", root), "utf8"),
     readFile(new URL("backend/Sepah.Pmo.Api/Controllers/EventsController.cs", root), "utf8"),
     readFile(new URL("backend/Sepah.Pmo.Api/Controllers/UsersController.cs", root), "utf8"),
+    readFile(new URL("backend/Sepah.Pmo.Api/Controllers/ProjectsController.cs", root), "utf8"),
+    readFile(new URL("backend/Sepah.Pmo.Api/Data/SeedData.cs", root), "utf8"),
   ]);
 
   assert.match(page, /سامانه مدیریت/);
@@ -48,6 +50,11 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(projects, /فعالیت‌های سطح بالا/);
   assert.match(projects, /تیم پروژه/);
   assert.match(projects, /ریسک‌های پروژه/);
+  assert.match(projects, /ذی‌نفعان پروژه/);
+  assert.match(projects, /دفتر ثبت و ارزیابی ریسک پروژه/);
+  assert.match(projects, /RPN به‌صورت خودکار/);
+  assert.match(projects, /شناسنامه ذی‌نفعان پروژه/);
+  assert.match(projects, /وزارت امور اقتصادی و دارایی/);
   assert.match(projects, /اقدامات مرتبط/);
   assert.match(operations, /تعریف و پیگیری اقدام/);
   assert.match(operations, /مرکز وظایف/);
@@ -125,6 +132,10 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(wbs, /افزودن زیر‌فعالیت/);
   assert.match(wbs, /پایان به شروع \(FS\)/);
   assert.match(wbs, /ذخیره WBS و زمان‌بندی/);
+  assert.match(wbs, /واحد همکار/);
+  assert.match(wbs, /درصد مشارکت واحد/);
+  assert.match(wbs, /تحویل‌دادنی/);
+  assert.match(wbs, /کنترل‌های ناظر کیفی/);
   assert.match(layout, /lang="fa" dir="rtl"/);
   assert.match(layout, /سامانه مدیریت پروژه‌های بانک سپه/);
   assert.match(css, /IRANSans-Medium\.ttf/);
@@ -146,6 +157,12 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(hosting, /"d1": "DB"/);
   assert.match(backend, /UseSqlServer/);
   assert.match(backend, /AddIdentityCore/);
+  assert.match(projectsApi, /SaveWbs/);
+  assert.match(projectsApi, /SaveRisks/);
+  assert.match(projectsApi, /SaveStakeholders/);
+  assert.match(seedData, /ProjectStakeholders/);
+  assert.match(seedData, /ProjectWbsItems/);
+  assert.match(seedData, /ProjectRisks/);
   assert.match(eventsApi, /EventTaskLinks/);
   assert.match(eventsApi, /\[HttpPost\]/);
   await access(new URL("public/images.jpg", root));

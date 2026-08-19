@@ -11,6 +11,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<ProjectRole> ProjectRoles => Set<ProjectRole>();
     public DbSet<ProjectUserAccess> ProjectUserAccess => Set<ProjectUserAccess>();
     public DbSet<CharterApproval> CharterApprovals => Set<CharterApproval>();
+    public DbSet<ProjectWbsItem> ProjectWbsItems => Set<ProjectWbsItem>();
+    public DbSet<ProjectRisk> ProjectRisks => Set<ProjectRisk>();
+    public DbSet<ProjectStakeholder> ProjectStakeholders => Set<ProjectStakeholder>();
     public DbSet<WorkTask> WorkTasks => Set<WorkTask>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
     public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
@@ -24,6 +27,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         base.OnModelCreating(builder);
         builder.Entity<Project>().HasIndex(x => x.Code).IsUnique();
         builder.Entity<Project>().Property(x => x.Budget).HasPrecision(18, 0);
+        builder.Entity<ProjectWbsItem>().Property(x => x.Weight).HasPrecision(5, 2);
+        builder.Entity<ProjectWbsItem>().Property(x => x.Cost).HasPrecision(18, 0);
+        builder.Entity<ProjectWbsItem>().Property(x => x.ParticipationPercent).HasPrecision(5, 2);
         builder.Entity<ProjectUserAccess>().HasIndex(x => new { x.ProjectId, x.UserId }).IsUnique();
         builder.Entity<ProjectUserAccess>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<EventTaskLink>().HasIndex(x => new { x.CalendarEventId, x.WorkTaskId }).IsUnique();

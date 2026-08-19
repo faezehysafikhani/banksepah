@@ -2705,3 +2705,54 @@ body { font-size: 13px; }
 .kpi-card-grid footer { display:grid; gap:7px; }.kpi-card-grid footer span { display:flex; align-items:flex-start; gap:6px; color:#587985; line-height:1.8; }.kpi-card-grid footer svg { flex:0 0 auto; margin-top:3px; color:#0784a3; }.kpi-card-grid footer b { color:#087a69; font-size:11px; }
 
 @media (max-width:1100px) { .outcome-card-grid { grid-template-columns:1fr; }.kpi-card-grid { grid-template-columns:1fr; }.event-main-grid > .ops-form-grid { grid-template-columns:1fr; }.event-main-grid > .ops-form-grid .wide { grid-column:auto; } }
+
+/* Workbook-aligned WBS, risk and stakeholder registers */
+.excel-coverage-strip { margin: 11px 0; padding: 10px 13px; display:flex; align-items:center; justify-content:space-between; gap:12px; color:#426c79; border:1px solid rgba(255,255,255,.86); border-radius:14px; background:linear-gradient(145deg,rgba(255,255,255,.64),rgba(179,231,239,.38)); box-shadow:0 12px 28px rgba(0,68,91,.1),inset 0 1px white; backdrop-filter:blur(18px) saturate(1.45); }
+.excel-coverage-strip strong { color:#087f9e; }
+.wbs-detail-grid label.wide { grid-column:1 / -1; }
+.wbs-detail-grid textarea { width:100%; min-height:62px; padding:10px 11px; resize:vertical; color:#204f60; border:1px solid rgba(0,103,134,.16); border-radius:11px; outline:0; background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(214,242,247,.6)); font:inherit; }
+.wbs-detail-grid textarea:focus { border-color:rgba(7,165,198,.55); box-shadow:0 0 0 3px rgba(7,165,198,.1); }
+.wbs-table td:nth-child(1) { min-width:220px; }
+.wbs-table td:nth-child(3), .wbs-table td:nth-child(6), .wbs-table td:nth-child(8), .wbs-table td:nth-child(9) { width:72px; }
+.wbs-table td:nth-child(7) { min-width:125px; }
+
+.excel-register { min-width:0; display:grid; gap:14px; }
+.excel-register > header { padding:15px 16px; display:flex; align-items:flex-end; justify-content:space-between; gap:18px; border:1px solid rgba(255,255,255,.88); border-radius:18px; background:radial-gradient(circle at 92% 8%,rgba(21,190,216,.18),transparent 33%),linear-gradient(145deg,rgba(255,255,255,.7),rgba(188,233,241,.42)); box-shadow:0 17px 37px rgba(0,63,86,.11),inset 0 1px white; backdrop-filter:blur(23px) saturate(1.5); }
+.excel-register > header > div:first-child { display:grid; gap:4px; }
+.excel-register > header small { color:#0783a3; font-weight:800; }
+.excel-register > header h2 { margin:0; color:#123f51; font-size:18px; }
+.excel-register > header p { margin:0; color:#617f8a; line-height:1.8; }
+.excel-register > header > div:last-child { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; }
+.excel-register > header span { padding:6px 10px; color:#087f9e; border:1px solid rgba(0,129,160,.13); border-radius:999px; background:rgba(255,255,255,.5); }
+.excel-register button { min-height:38px; padding:7px 12px; display:inline-flex; align-items:center; justify-content:center; gap:6px; color:white; border:1px solid rgba(255,255,255,.55); border-radius:11px; background:linear-gradient(135deg,#0aa7c4,#087a9c); box-shadow:0 10px 21px rgba(0,105,135,.18),inset 0 1px rgba(255,255,255,.42); font:inherit; cursor:pointer; }
+.excel-register-table { overflow:hidden; border:1px solid rgba(255,255,255,.9); border-radius:19px; background:linear-gradient(145deg,rgba(255,255,255,.63),rgba(185,231,239,.38)); box-shadow:0 19px 42px rgba(0,61,83,.12),inset 0 1px white; backdrop-filter:blur(25px) saturate(1.45); }
+.excel-register-table > div, .excel-register-table > article { min-width:0; display:grid; align-items:center; gap:8px; }
+.risk-register-head, .risk-row { grid-template-columns:minmax(210px,1.7fr) 58px 58px 58px 64px minmax(250px,2fr) 44px; }
+.risk-register.readonly .risk-register-head, .risk-register .risk-register-head:has(span:nth-child(6):last-child), .risk-register .risk-row:not(:has(.register-delete)) { grid-template-columns:minmax(210px,1.7fr) 58px 58px 58px 64px minmax(250px,2fr); }
+.stakeholder-head, .stakeholder-row { grid-template-columns:minmax(170px,1.1fr) 130px minmax(280px,2fr) minmax(190px,1.25fr) 44px; }
+.stakeholder-row:not(:has(.register-delete)), .stakeholder-head:has(span:nth-child(4):last-child) { grid-template-columns:minmax(170px,1.1fr) 130px minmax(280px,2fr) minmax(190px,1.25fr); }
+.risk-register-head, .stakeholder-head { min-height:43px; padding:8px 12px; color:#557985; font-weight:800; background:rgba(0,110,140,.07); }
+.risk-row, .stakeholder-row { min-height:67px; padding:8px 12px; border-top:1px solid rgba(0,91,119,.09); }
+.risk-row { box-shadow:inset -4px 0 transparent; }
+.risk-row.critical { box-shadow:inset -4px 0 #e66c66; }.risk-row.warning { box-shadow:inset -4px 0 #eaa43c; }.risk-row.normal { box-shadow:inset -4px 0 #24a78d; }
+.risk-row > span, .risk-row > b { text-align:center; }.risk-row > b { padding:6px; color:#087d9c; border-radius:9px; background:rgba(255,255,255,.52); }
+.risk-row p, .stakeholder-row p, .stakeholder-row small { margin:0; color:#506f7a; line-height:1.85; }
+.stakeholder-row > span { padding:6px 8px; text-align:center; border-radius:999px; }.stakeholder-row > span.internal { color:#087e69; background:rgba(43,190,157,.11); }.stakeholder-row > span.external { color:#b36b18; background:rgba(241,169,70,.15); }
+.excel-register-table :is(input,select,textarea) { width:100%; min-width:0; min-height:42px; padding:8px 9px; color:#214f5f; border:1px solid rgba(0,113,143,.17); border-radius:10px; outline:0; background:linear-gradient(145deg,rgba(255,255,255,.78),rgba(213,242,247,.55)); box-shadow:inset 0 1px white,0 6px 14px rgba(0,71,94,.05); font:inherit; }
+.excel-register-table textarea { min-height:48px; resize:vertical; line-height:1.7; }
+.excel-register .register-delete { width:36px; min-height:36px; padding:0; color:#bd4d52; background:rgba(255,255,255,.5); box-shadow:none; }
+.excel-register > footer { display:flex; justify-content:flex-start; }
+
+/* Deeper frosted-glass treatment for the main status chart */
+.status-chart-card { border:1px solid rgba(255,255,255,.96); background:radial-gradient(circle at 84% 10%,rgba(255,255,255,.72),transparent 27%),radial-gradient(circle at 12% 88%,rgba(17,192,216,.3),transparent 36%),linear-gradient(145deg,rgba(246,254,255,.78),rgba(145,216,229,.45)); box-shadow:0 30px 74px rgba(0,49,70,.22),0 0 0 5px rgba(255,255,255,.09),inset 0 1px white,inset 0 -18px 38px rgba(0,118,151,.08); backdrop-filter:blur(38px) saturate(1.85); }
+.status-chart-card::before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(120deg,rgba(255,255,255,.62) 0%,rgba(255,255,255,.12) 29%,transparent 52%,rgba(62,201,221,.08) 100%); border-radius:inherit; }
+.status-chart-card .donut-chart { box-shadow:0 30px 64px rgba(0,107,140,.33),0 0 0 10px rgba(255,255,255,.19),inset 0 2px 2px rgba(255,255,255,.9); filter:drop-shadow(0 8px 15px rgba(0,88,117,.16)); }
+.status-chart-card .chart-legend p { background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(173,226,235,.4)); box-shadow:0 13px 29px rgba(0,61,84,.11),inset 0 1px white; backdrop-filter:blur(18px) saturate(1.55); }
+
+@media (max-width:1100px) {
+  .risk-register-head, .stakeholder-head { display:none !important; }
+  .risk-row, .risk-register .risk-row:not(:has(.register-delete)), .stakeholder-row, .stakeholder-row:not(:has(.register-delete)) { grid-template-columns:repeat(3,minmax(0,1fr)); padding:12px; }
+  .risk-row > :first-child, .risk-row > :nth-child(6), .stakeholder-row > :first-child, .stakeholder-row > :nth-child(3), .stakeholder-row > :nth-child(4) { grid-column:1 / -1; }
+  .register-delete { grid-column:3; justify-self:end; }
+}
+@media (max-width:700px) { .excel-register > header, .excel-coverage-strip { align-items:stretch; flex-direction:column; }.risk-row, .risk-register .risk-row:not(:has(.register-delete)), .stakeholder-row, .stakeholder-row:not(:has(.register-delete)) { grid-template-columns:1fr 1fr; }.risk-row > :first-child, .risk-row > :nth-child(6), .stakeholder-row > :first-child, .stakeholder-row > :nth-child(3), .stakeholder-row > :nth-child(4) { grid-column:1 / -1; } }

@@ -12,3 +12,6 @@ public record EventResponse(int Id, string Title, string EventType, string Organ
 public record ProjectRoleDto(int Id, string RoleType, string FullName, string Position, string PersonnelNumber, string Phone, string Email, string ServiceLocation);
 public record ApprovalDto(int Id, int Order, string RoleTitle, string ApproverName, string Department, string Status, string? DecisionDate, string? Comment);
 public record ProjectAccessDto(int ProjectId, string ProjectCode, string ProjectName, bool CanView, bool CanEdit, bool CanManageTeam, bool CanManageWbs, bool CanApprove);
+public record ProjectWbsItemDto(int Id, string Code, string ParentCode, string Name, int Duration, string StartDate, string EndDate, decimal Weight, string Owner, int Planned, int Actual, decimal Cost, int PersonHours, string Importance, string Complexity, string PrerequisiteCode, string RelationType, int LagDays, string CollaboratingUnit, decimal ParticipationPercent, string Deliverable, string Requirements, string QualityControl);
+public record ProjectRiskDto(int Id, string Title, int Probability, int Severity, int Impact, int Rpn, string ResponsePlan);
+public record ProjectStakeholderDto(int Id, string Name, string RelationType, string Expectations, string Notes);

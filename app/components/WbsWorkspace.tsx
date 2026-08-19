@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../lib/api";
 import {
   BarChart3,
   ChevronDown,
@@ -34,6 +35,11 @@ type Activity = {
   dependency: string;
   relation: "FS" | "SS" | "FF" | "SF";
   lag: number;
+  collaboratingUnit?: string;
+  participation?: number;
+  deliverable?: string;
+  requirements?: string;
+  qualityControl?: string;
 };
 
 const initialActivities: Activity[] = [
@@ -50,13 +56,34 @@ function fa(value: number) {
   return new Intl.NumberFormat("fa-IR").format(value);
 }
 
-export default function WbsWorkspace({ projectName }: { projectName: string }) {
-  const [activities, setActivities] = useState(initialActivities);
+const workbookDetails = [
+  { collaboratingUnit:"اداره کل سازمان و روش‌ها", participation:50, deliverable:"نظام‌نامه مدیریت پروژه بازنگری‌شده", requirements:"انطباق با PMBOK و ISO 10006", qualityControl:"بازبینی مستندات توسط ناظر کیفی" },
+  { collaboratingUnit:"مناطق و شعب", participation:30, deliverable:"صورت‌خلاصه نظرات کاربران", requirements:"پوشش واحدهای صف و ستاد", qualityControl:"کنترل کامل بودن پاسخ‌ها" },
+  { collaboratingUnit:"فناوری اطلاعات", participation:70, deliverable:"معماری مصوب و الزامات امنیتی", requirements:"معماری مرجع و ضوابط امنیت بانک", qualityControl:"تأیید کمیته فنی" },
+  { collaboratingUnit:"معاونت فناوری اطلاعات", participation:80, deliverable:"نسخه عملیاتی سامانه PMO", requirements:"امنیت، یکپارچگی و دسترس‌پذیری", qualityControl:"آزمون پذیرش و صورتجلسه استقرار" },
+  { collaboratingUnit:"شرکت مجری", participation:60, deliverable:"سرویس‌های سمت سرور", requirements:"SLA و استانداردهای توسعه بانک", qualityControl:"بازبینی کد و آزمون بار" },
+  { collaboratingUnit:"بانکداری دیجیتال", participation:45, deliverable:"رابط کاربری یکپارچه", requirements:"راهنمای هویت بصری و دسترس‌پذیری", qualityControl:"آزمون کاربردپذیری" },
+  { collaboratingUnit:"کنترل پروژه", participation:40, deliverable:"گزارش آزمون و سند تحویل", requirements:"تکمیل سناریوهای پذیرش", qualityControl:"کنترل مستندات تحویل نهایی" },
+];
+
+type WbsApiRow = { id:number; code:string; parentCode:string; name:string; duration:number; startDate:string; endDate:string; weight:number; owner:string; planned:number; actual:number; cost:number; personHours:number; importance:string; complexity:string; prerequisiteCode:string; relationType:string; lagDays:number; collaboratingUnit:string; participationPercent:number; deliverable:string; requirements:string; qualityControl:string };
+
+export default function WbsWorkspace({ projectName, projectId }: { projectName: string; projectId?: number }) {
+  const [activities, setActivities] = useState(() => initialActivities.map((item,index) => ({ ...item, ...workbookDetails[index % workbookDetails.length] })));
   const [expanded, setExpanded] = useState(() => new Set([1, 4, 7]));
   const [view, setView] = useState<"table" | "gantt">("table");
   const [detailId, setDetailId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (!projectId) return;
+    api<WbsApiRow[]>(`/projects/${projectId}/wbs`).then((items) => {
+      if (!items.length) return;
+      const idByCode = new Map(items.map((item) => [item.code,item.id]));
+      setActivities(items.map((item) => ({ id:item.id, parentId:idByCode.get(item.parentCode) ?? null, code:item.code, name:item.name, duration:item.duration, start:item.startDate, end:item.endDate, weight:item.weight, owner:item.owner, planned:item.planned, actual:item.actual, cost:item.cost, hours:item.personHours, importance:item.importance as Activity["importance"], complexity:item.complexity as Activity["complexity"], dependency:item.prerequisiteCode || "-", relation:item.relationType as Activity["relation"], lag:item.lagDays, collaboratingUnit:item.collaboratingUnit, participation:item.participationPercent, deliverable:item.deliverable, requirements:item.requirements, qualityControl:item.qualityControl })));
+    }).catch(() => undefined);
+  }, [projectId]);
 
   const rows = useMemo(() => {
     const result: Array<Activity & { level: number; hasChildren: boolean }> = [];
@@ -88,6 +115,8 @@ export default function WbsWorkspace({ projectName }: { projectName: string }) {
       start: "۱۴۰۵/۰۱/۱۵", end: "۱۴۰۵/۰۱/۱۵", weight: 0, owner: "-",
       planned: 0, actual: 0, cost: 0, hours: 0, importance: "متوسط",
       complexity: "متوسط", dependency: "-", relation: "FS", lag: 0,
+      collaboratingUnit: "واحد همکار", participation: 0, deliverable: "تحویل‌دادنی فعالیت",
+      requirements: "الزامات اجرایی فعالیت", qualityControl: "کنترل ناظر کیفی",
     }]);
     if (parentId) setExpanded((current) => new Set(current).add(parentId));
     setNotice(parent ? `زیر‌فعالیت جدید به «${parent.name}» اضافه شد.` : "فعالیت سطح اصلی اضافه شد.");
@@ -116,9 +145,16 @@ export default function WbsWorkspace({ projectName }: { projectName: string }) {
       return;
     }
     const id = Math.max(...activities.map((item) => item.id)) + 1;
-    setActivities((current) => [...current, { id, parentId: 7, code: "3.1", name: "آموزش و انتقال دانش", duration: 15, start: "۱۴۰۵/۱۰/۰۸", end: "۱۴۰۵/۱۰/۲۳", weight: 5, owner: "مدیر سامانه", planned: 0, actual: 0, cost: 180000000, hours: 160, importance: "متوسط", complexity: "کم", dependency: "3", relation: "FS", lag: 0 }]);
+    setActivities((current) => [...current, { id, parentId: 7, code: "3.1", name: "آموزش و انتقال دانش", duration: 15, start: "۱۴۰۵/۱۰/۰۸", end: "۱۴۰۵/۱۰/۲۳", weight: 5, owner: "مدیر سامانه", planned: 0, actual: 0, cost: 180000000, hours: 160, importance: "متوسط", complexity: "کم", dependency: "3", relation: "FS", lag: 0, collaboratingUnit:"منابع انسانی", participation:35, deliverable:"بسته آموزشی و راهنمای بهره‌برداری", requirements:"حضور کاربران کلیدی", qualityControl:"ارزیابی اثربخشی آموزش" }]);
     setExpanded((current) => new Set(current).add(7));
     setNotice("فعالیت پیشنهادی هوشمند به ساختار شکست کار اضافه شد.");
+  }
+
+  async function saveWbs() {
+    if (!projectId) { setNotice("ساختار شکست کار و اطلاعات زمان‌بندی در پیش‌نویس ذخیره شد."); return; }
+    const payload = activities.map((item) => ({ id:item.id, code:item.code, parentCode:activities.find((parent) => parent.id === item.parentId)?.code ?? "", name:item.name, duration:item.duration, startDate:item.start, endDate:item.end, weight:item.weight, owner:item.owner, planned:item.planned, actual:item.actual, cost:item.cost, personHours:item.hours, importance:item.importance, complexity:item.complexity, prerequisiteCode:item.dependency, relationType:item.relation, lagDays:item.lag, collaboratingUnit:item.collaboratingUnit ?? "", participationPercent:item.participation ?? 0, deliverable:item.deliverable ?? "", requirements:item.requirements ?? "", qualityControl:item.qualityControl ?? "" }));
+    await api(`/projects/${projectId}/wbs`, { method:"PUT", body:JSON.stringify(payload) });
+    setNotice("WBS کامل مطابق فرم بانک سپه در SQL Server ذخیره شد.");
   }
 
   return (
@@ -142,13 +178,14 @@ export default function WbsWorkspace({ projectName }: { projectName: string }) {
         <span><small>وزن کل</small><strong>{fa(activities.filter((item) => item.parentId === null).reduce((sum, item) => sum + item.weight, 0))}٪</strong></span>
         <span><small>پیشرفت واقعی</small><strong>{fa(Math.round(activities.filter((item) => item.parentId === null).reduce((sum, item) => sum + item.actual * item.weight, 0) / 100))}٪</strong></span>
       </div>
+      <div className="excel-coverage-strip"><strong>پوشش فرم زمان‌بندی بانک سپه</strong><span>پیش‌نیاز، نفرساعت، واحد همکار و مشارکت، تحویل‌دادنی، الزامات و کنترل ناظر کیفی</span></div>
 
       {notice && <div className="wbs-notice"><span>{notice}</span><button type="button" onClick={() => setNotice("")}><X size={14} /></button></div>}
 
       {view === "table" ? (
         <div className="wbs-table-wrap">
           <table className="wbs-table">
-            <thead><tr><th>کد WBS / نام فعالیت</th><th>مدت</th><th>تاریخ شروع</th><th>تاریخ پایان</th><th>وزن</th><th>مسئول</th><th>برنامه‌ای</th><th>واقعی</th><th>عملیات</th></tr></thead>
+            <thead><tr><th>کد WBS / نام فعالیت</th><th>مدت</th><th>نفرساعت</th><th>تاریخ شروع</th><th>تاریخ پایان</th><th>وزن</th><th>واحد همکار</th><th>برنامه‌ای</th><th>واقعی</th><th>عملیات</th></tr></thead>
             <tbody>
               {rows.map((activity) => (
                 <tr key={activity.id} className={activity.level === 0 ? "root" : ""}>
@@ -156,11 +193,12 @@ export default function WbsWorkspace({ projectName }: { projectName: string }) {
                     {activity.hasChildren ? <button type="button" aria-label={`باز یا بسته کردن ${activity.name}`} onClick={() => setExpanded((current) => { const next = new Set(current); if (next.has(activity.id)) next.delete(activity.id); else next.add(activity.id); return next; })}>{expanded.has(activity.id) ? <ChevronDown size={15} /> : <ChevronLeft size={15} />}</button> : <i />}
                     <em>{activity.code}</em><input aria-label={`نام فعالیت ${activity.code}`} value={activity.name} onChange={(event) => update(activity.id, "name", event.target.value)} />
                   </div></td>
-                  <td><input aria-label={`مدت ${activity.name}`} type="number" min="1" value={activity.duration} onChange={(event) => update(activity.id, "duration", Number(event.target.value))} /></td>
+                   <td><input aria-label={`مدت ${activity.name}`} type="number" min="1" value={activity.duration} onChange={(event) => update(activity.id, "duration", Number(event.target.value))} /></td>
+                   <td><input aria-label={`نفرساعت ${activity.name}`} type="number" min="0" value={activity.hours} onChange={(event) => update(activity.id, "hours", Number(event.target.value))} /></td>
                   <td><input aria-label={`شروع ${activity.name}`} value={activity.start} onChange={(event) => update(activity.id, "start", event.target.value)} /></td>
                   <td><input aria-label={`پایان ${activity.name}`} value={activity.end} onChange={(event) => update(activity.id, "end", event.target.value)} /></td>
                   <td><input aria-label={`وزن ${activity.name}`} type="number" min="0" max="100" value={activity.weight} onChange={(event) => update(activity.id, "weight", Number(event.target.value))} /></td>
-                  <td><select aria-label={`مسئول ${activity.name}`} value={activity.owner} onChange={(event) => update(activity.id, "owner", event.target.value)}><option>-</option><option>مدیر سامانه</option><option>علی رضایی</option><option>مریم احمدی</option><option>رضا کریمی</option><option>سارا محمدی</option></select></td>
+                   <td><input aria-label={`واحد همکار ${activity.name}`} value={activity.collaboratingUnit ?? ""} onChange={(event) => update(activity.id, "collaboratingUnit", event.target.value)} /></td>
                   <td><span className="wbs-plan">{fa(activity.planned)}٪</span></td>
                   <td><input aria-label={`پیشرفت واقعی ${activity.name}`} type="number" min="0" max="100" value={activity.actual} onChange={(event) => update(activity.id, "actual", Number(event.target.value))} /></td>
                   <td><div className="wbs-actions"><button type="button" title="جزئیات فعالیت" onClick={() => setDetailId(activity.id)}><Info size={14} /></button><button type="button" title="افزودن زیر‌فعالیت" onClick={() => addActivity(activity.id)}><CirclePlus size={14} /></button><button type="button" title="حذف فعالیت" className="danger" onClick={() => setDeleteId(activity.id)}><Trash2 size={14} /></button></div></td>
@@ -178,7 +216,7 @@ export default function WbsWorkspace({ projectName }: { projectName: string }) {
         </div>
       )}
 
-      <footer className="wbs-save"><button type="button" onClick={() => setNotice("ساختار شکست کار و اطلاعات زمان‌بندی ذخیره شد.")}><Save size={16} /> ذخیره WBS و زمان‌بندی</button></footer>
+      <footer className="wbs-save"><button type="button" onClick={saveWbs}><Save size={16} /> ذخیره WBS و زمان‌بندی</button></footer>
 
       {selected && (
         <div className="wbs-modal-backdrop" role="presentation">
@@ -193,6 +231,11 @@ export default function WbsWorkspace({ projectName }: { projectName: string }) {
               <label><span>نوع رابطه</span><select value={selected.relation} onChange={(event) => update(selected.id, "relation", event.target.value)}><option value="FS">پایان به شروع (FS)</option><option value="SS">شروع به شروع (SS)</option><option value="FF">پایان به پایان (FF)</option><option value="SF">شروع به پایان (SF)</option></select></label>
               <label><span>Lag (روز)</span><input type="number" value={selected.lag} onChange={(event) => update(selected.id, "lag", Number(event.target.value))} /></label>
               <label><span>کد WBS</span><input value={selected.code} disabled /></label>
+              <label><span>واحد همکار</span><input value={selected.collaboratingUnit ?? ""} onChange={(event) => update(selected.id, "collaboratingUnit", event.target.value)} /></label>
+              <label><span>درصد مشارکت واحد</span><input type="number" min="0" max="100" value={selected.participation ?? 0} onChange={(event) => update(selected.id, "participation", Number(event.target.value))} /></label>
+              <label className="wide"><span>تحویل‌دادنی</span><textarea value={selected.deliverable ?? ""} onChange={(event) => update(selected.id, "deliverable", event.target.value)} /></label>
+              <label className="wide"><span>الزامات فعالیت</span><textarea value={selected.requirements ?? ""} onChange={(event) => update(selected.id, "requirements", event.target.value)} /></label>
+              <label className="wide"><span>کنترل‌های ناظر کیفی</span><textarea value={selected.qualityControl ?? ""} onChange={(event) => update(selected.id, "qualityControl", event.target.value)} /></label>
             </div>
             <div className="wbs-float-info"><span>شناوری کل: <strong>{selected.dependency === "-" ? "۲ روز" : "۰ روز"}</strong></span><span>شناوری آزاد: <strong>۰ روز</strong></span><span>مسیر بحرانی: <strong>{selected.importance === "زیاد" ? "بحرانی" : "غیربحرانی"}</strong></span></div>
             <footer><button type="button" onClick={() => setDetailId(null)}><Save size={15} /> ذخیره جزئیات</button></footer>

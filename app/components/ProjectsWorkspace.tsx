@@ -21,6 +21,7 @@ import {
   FolderPlus,
   GitBranch,
   Gauge,
+  Handshake,
   History,
   LayoutDashboard,
   Layers3,
@@ -133,6 +134,7 @@ const waterfallTabs = [
   ["approvals", "تأییدات منشور", CheckCircle2],
   ["schedule", "برنامه زمان‌بندی پروژه", CalendarRange],
   ["team", "ارکان و تیم پروژه", Users],
+  ["stakeholders", "ذی‌نفعان پروژه", Handshake],
   ["risks", "ریسک‌های پروژه", ShieldAlert],
   ["status", "وضعیت پروژه", Activity],
   ["delays", "دلایل تأخیر", Clock3],
@@ -241,6 +243,48 @@ function ProjectRolesPanel({ projectId }: { projectId?: number }) {
 }
 function PlusIcon() { return <span aria-hidden="true">＋</span>; }
 
+type RiskRow = { id:number; title:string; probability:number; severity:number; impact:number; rpn:number; responsePlan:string };
+type StakeholderRow = { id:number; name:string; relationType:string; expectations:string; notes:string };
+
+const sampleRisks: RiskRow[] = [
+  { id:0, title:"خارج از سرویس بودن سامانه EPM", probability:2, severity:2, impact:2, rpn:8, responsePlan:"بروزرسانی سامانه و استقرار مانیتورینگ سرویس" },
+  { id:0, title:"تأخیر در ثبت اطلاعات پیشرفت پروژه توسط ارکان پروژه", probability:2, severity:2, impact:2, rpn:8, responsePlan:"اطلاع‌رسانی و یادآوری خودکار مطابق WBS مصوب" },
+  { id:0, title:"ضعف در هماهنگی ارکان پروژه برای اجرای فعالیت‌های WBS", probability:2, severity:2, impact:2, rpn:8, responsePlan:"ساماندهی تیم‌ها و برگزاری جلسه پایش هفتگی" },
+  { id:0, title:"ضعف در شناسایی و ثبت دانش حین اجرای پروژه", probability:3, severity:3, impact:2, rpn:18, responsePlan:"کنترل ثبت درس‌آموخته‌ها در سامانه PMO" },
+  { id:0, title:"عدم تطابق دستاوردها با فرم اختتامیه پروژه", probability:3, severity:3, impact:3, rpn:27, responsePlan:"کنترل دستاوردها براساس KPI در زمان خاتمه" },
+  { id:0, title:"ضعف توانمندی ارکان مدیریت پروژه", probability:3, severity:4, impact:3, rpn:36, responsePlan:"برنامه توانمندسازی و ارزیابی دوره‌ای ارکان پروژه" },
+];
+
+const sampleStakeholders: StakeholderRow[] = [
+  { id:0, name:"مدیرعامل", relationType:"درون سازمانی", expectations:"مدیریت و کنترل پروژه‌ها مطابق آیین‌نامه مصوب بانک", notes:"گزارش مدیریتی ماهانه" },
+  { id:0, name:"معاونت برنامه‌ریزی و هدایت راهبردی", relationType:"درون سازمانی", expectations:"استانداردسازی فرایند مدیریت پروژه در بانک", notes:"مالک نظام مدیریت پروژه" },
+  { id:0, name:"هیأت مدیره بانک", relationType:"درون سازمانی", expectations:"پروژه‌محور شدن فعالیت‌های کلیدی در محیط کسب‌وکار بانک", notes:"دریافت گزارش فصلی" },
+  { id:0, name:"هیأت عامل بانک", relationType:"درون سازمانی", expectations:"ارائه گزارش پیشرفت پروژه‌های مربوط به واحدهای ستادی", notes:"پایش مصوبات" },
+  { id:0, name:"مدیران مناطق", relationType:"درون سازمانی", expectations:"گزارش پیشرفت مناطق و اعلام بازخورد ثبت درصد پیشرفت", notes:"جلسه هماهنگی ماهانه" },
+  { id:0, name:"رؤسای شعب", relationType:"درون سازمانی", expectations:"اعلام بازخورد درباره ثبت و تأیید درصد پیشرفت پروژه", notes:"ارتباط از طریق مدیر منطقه" },
+  { id:0, name:"مدیران پروژه‌ها", relationType:"درون سازمانی", expectations:"تأیید مستندات، رفع موانع و هماهنگی پروژه‌های بین‌واحدی", notes:"کاربر کلیدی سامانه" },
+  { id:0, name:"وزارت امور اقتصادی و دارایی", relationType:"برون سازمانی", expectations:"ارائه گزارش پیشرفت براساس شاخص‌های ابلاغی وزارت اقتصاد", notes:"ارسال گزارش در مواعد رسمی" },
+];
+
+function RiskRegisterPanel({ projectId, readOnly=false }: { projectId?:number; readOnly?:boolean }) {
+  const [rows,setRows] = useState(sampleRisks); const [notice,setNotice] = useState("");
+  useEffect(() => { if (projectId) api<RiskRow[]>(`/projects/${projectId}/risks`).then((items) => { if (items.length) setRows(items); }).catch(() => undefined); }, [projectId]);
+  function update(index:number, key:keyof RiskRow, value:string|number) { setRows((current) => current.map((row,i) => i === index ? { ...row, [key]:value, rpn:key === "probability" || key === "severity" || key === "impact" ? Number(key === "probability" ? value : row.probability) * Number(key === "severity" ? value : row.severity) * Number(key === "impact" ? value : row.impact) : row.rpn } : row)); }
+  function addRow() { setRows((current) => [...current,{ id:0,title:"ریسک جدید",probability:1,severity:1,impact:1,rpn:1,responsePlan:"برنامه واکنش و اقدام کنترلی" }]); }
+  async function save() { if (projectId) { const saved=await api<RiskRow[]>(`/projects/${projectId}/risks`,{method:"PUT",body:JSON.stringify(rows)}); setRows(saved); setNotice("فهرست ریسک‌ها و RPN در SQL Server ذخیره شد."); } else setNotice("فهرست ریسک‌ها در پیش‌نویس پروژه ذخیره شد."); }
+  return <section className="excel-register risk-register"><header><div><small>مطابق شیت «لیست ریسک‌ها»</small><h2>دفتر ثبت و ارزیابی ریسک پروژه</h2><p>RPN به‌صورت خودکار از حاصل‌ضرب احتمال وقوع، شدت ریسک و اثر ریسک محاسبه می‌شود.</p></div><div><span>{fa(rows.filter((row) => row.rpn >= 27).length)} ریسک بحرانی</span>{!readOnly && <button type="button" onClick={addRow}><PlusIcon /> افزودن ریسک</button>}</div></header><div className="excel-register-table"><div className="risk-register-head"><span>عنوان ریسک</span><span>احتمال</span><span>شدت</span><span>اثر</span><span>RPN</span><span>برنامه واکنش</span>{!readOnly && <span>حذف</span>}</div>{rows.map((row,index) => <article key={`${row.title}-${index}`} className={`risk-row ${row.rpn >= 27 ? "critical" : row.rpn >= 12 ? "warning" : "normal"}`}>{readOnly ? <><strong>{row.title}</strong><span>{fa(row.probability)}</span><span>{fa(row.severity)}</span><span>{fa(row.impact)}</span><b>{fa(row.rpn)}</b><p>{row.responsePlan}</p></> : <><input value={row.title} onChange={(event) => update(index,"title",event.target.value)} /><select value={row.probability} onChange={(event) => update(index,"probability",Number(event.target.value))}>{[1,2,3,4,5].map((n)=><option key={n}>{n}</option>)}</select><select value={row.severity} onChange={(event) => update(index,"severity",Number(event.target.value))}>{[1,2,3,4,5].map((n)=><option key={n}>{n}</option>)}</select><select value={row.impact} onChange={(event) => update(index,"impact",Number(event.target.value))}>{[1,2,3,4,5].map((n)=><option key={n}>{n}</option>)}</select><b>{fa(row.rpn)}</b><textarea value={row.responsePlan} onChange={(event) => update(index,"responsePlan",event.target.value)} /><button type="button" className="register-delete" onClick={() => setRows((current) => current.filter((_,i) => i !== index))}><Trash2 size={15} /></button></>}</article>)}</div>{!readOnly && <footer><button type="button" onClick={save}><Save size={16} /> ذخیره فهرست ریسک‌ها</button></footer>}{notice && <div className="form-notice"><CheckCircle2 size={16} />{notice}</div>}</section>;
+}
+
+function StakeholdersPanel({ projectId, readOnly=false }: { projectId?:number; readOnly?:boolean }) {
+  const [rows,setRows] = useState(sampleStakeholders); const [notice,setNotice] = useState("");
+  useEffect(() => { if (projectId) api<StakeholderRow[]>(`/projects/${projectId}/stakeholders`).then((items) => { if (items.length) setRows(items); }).catch(() => undefined); }, [projectId]);
+  function update(index:number,key:keyof StakeholderRow,value:string) { setRows((current) => current.map((row,i) => i === index ? {...row,[key]:value} : row)); }
+  function addRow() { setRows((current) => [...current,{id:0,name:"ذی‌نفع جدید",relationType:"درون سازمانی",expectations:"انتظارات اصلی ذی‌نفع",notes:"توضیحات و برنامه ارتباطی"}]); }
+  async function save() { if (projectId) { const saved=await api<StakeholderRow[]>(`/projects/${projectId}/stakeholders`,{method:"PUT",body:JSON.stringify(rows)}); setRows(saved); setNotice("فهرست ذی‌نفعان در SQL Server ذخیره شد."); } else setNotice("فهرست ذی‌نفعان در پیش‌نویس ذخیره شد."); }
+  const internal=rows.filter((row)=>row.relationType === "درون سازمانی").length;
+  return <section className="excel-register stakeholder-register"><header><div><small>مطابق شیت «لیست ذی‌نفعان»</small><h2>شناسنامه ذی‌نفعان پروژه</h2><p>ذی‌نفعان درون و برون‌سازمانی، انتظارات اصلی و برنامه ارتباطی آن‌ها ثبت می‌شود.</p></div><div className="stakeholder-counts"><span>{fa(internal)} درون‌سازمانی</span><span>{fa(rows.length-internal)} برون‌سازمانی</span>{!readOnly && <button type="button" onClick={addRow}><PlusIcon /> افزودن ذی‌نفع</button>}</div></header><div className="excel-register-table"><div className="stakeholder-head"><span>ذی‌نفع پروژه</span><span>نوع ارتباط</span><span>انتظارات اصلی</span><span>توضیحات / برنامه ارتباطی</span>{!readOnly && <span>حذف</span>}</div>{rows.map((row,index)=><article key={`${row.name}-${index}`} className="stakeholder-row">{readOnly ? <><strong>{row.name}</strong><span className={row.relationType === "برون سازمانی" ? "external" : "internal"}>{row.relationType}</span><p>{row.expectations}</p><small>{row.notes}</small></> : <><input value={row.name} onChange={(event)=>update(index,"name",event.target.value)} /><select value={row.relationType} onChange={(event)=>update(index,"relationType",event.target.value)}><option>درون سازمانی</option><option>برون سازمانی</option></select><textarea value={row.expectations} onChange={(event)=>update(index,"expectations",event.target.value)} /><textarea value={row.notes} onChange={(event)=>update(index,"notes",event.target.value)} /><button type="button" className="register-delete" onClick={()=>setRows((current)=>current.filter((_,i)=>i!==index))}><Trash2 size={15} /></button></>}</article>)}</div>{!readOnly && <footer><button type="button" onClick={save}><Save size={16} /> ذخیره فهرست ذی‌نفعان</button></footer>}{notice && <div className="form-notice"><CheckCircle2 size={16} />{notice}</div>}</section>;
+}
+
 function TabFields({ tab, agile, projectId }: { tab: string; agile: boolean; projectId?: number }) {
   if (tab === "charter") return <CharterFields agile={agile} />;
   if (tab === "outcomes") return <div className="project-form-grid outcome-form-grid">
@@ -277,18 +321,8 @@ function TabFields({ tab, agile, projectId }: { tab: string; agile: boolean; pro
     </div>
   );
   if (tab === "team") return <ProjectRolesPanel projectId={projectId} />;
-  if (tab === "risks") return (
-    <div className="project-form-grid">
-      <Field label="عنوان ریسک" required />
-      <Field label="دسته‌بندی" type="select" options={["فنی", "زمانی", "مالی", "امنیتی", "منابع انسانی", "تأمین‌کننده"]} />
-      <Field label="احتمال وقوع" type="select" options={["۱ - بسیار کم", "۲ - کم", "۳ - متوسط", "۴ - زیاد", "۵ - بسیار زیاد"]} />
-      <Field label="شدت اثر" type="select" options={["۱ - ناچیز", "۲ - کم", "۳ - متوسط", "۴ - زیاد", "۵ - بحرانی"]} />
-      <Field label="مالک ریسک" type="select" options={["مدیر پروژه", "حامی پروژه", "مسئول فنی"]} />
-      <Field label="موعد اقدام" type="date" />
-      <Field label="شرح ریسک و علت" type="textarea" />
-      <Field label="برنامه پاسخ و اقدام کنترلی" type="textarea" />
-    </div>
-  );
+  if (tab === "stakeholders") return <StakeholdersPanel projectId={projectId} />;
+  if (tab === "risks") return <RiskRegisterPanel projectId={projectId} />;
   if (tab === "status") return (
     <div className="project-form-grid">
       <Field label="تاریخ گزارش" type="date" required />
@@ -437,7 +471,7 @@ function ProjectEditor({ project, onUpdate }: { project: ProjectItem; onUpdate: 
       </nav>
 
       {activeTab === "schedule" ? (
-        <div className="editor-wbs-shell"><WbsWorkspace projectName={project.name} /></div>
+        <div className="editor-wbs-shell"><WbsWorkspace projectName={project.name} projectId={project.id} /></div>
       ) : (
         <form className="creator-form project-editor-form" onSubmit={submit}>
           <div className="form-section-title">
@@ -460,6 +494,7 @@ const dashboardTabs = [
   ["approvals", "تأییدات منشور", CheckCircle2],
   ["activities", "فعالیت‌های سطح بالا", Layers3],
   ["team", "ارکان و تیم پروژه", Users],
+  ["stakeholders", "ذی‌نفعان پروژه", Handshake],
   ["risks", "ریسک‌های پروژه", ShieldAlert],
   ["actions", "اقدامات مرتبط", ListChecks],
 ] as const;
@@ -496,12 +531,6 @@ function ProjectDashboard({ project }: { project: ProjectItem }) {
     ["۳", "پیاده‌سازی و یکپارچه‌سازی", "۱۴۰۵/۰۶/۰۱", "۱۴۰۵/۰۹/۳۰", "۴۰", "۷۰٪", "۵۸٪"],
     ["۴", "آزمون، آموزش و تحویل نهایی", "۱۴۰۵/۱۰/۰۱", project.end, "۱۵", "۲۰٪", "۱۰٪"],
   ];
-  const risks = [
-    ["۱", "تأخیر در تأمین زیرساخت و تجهیزات کلیدی پروژه", "زیاد", "زیاد", "مدیر پروژه", "تدوین برنامه تأمین جایگزین و کنترل هفتگی زمان تحویل"],
-    ["۲", "تغییر الزامات ذی‌نفعان در حین اجرا", "متوسط", "زیاد", "حامی پروژه", "استقرار فرآیند کنترل تغییرات و تصویب دامنه"],
-    ["۳", "کمبود منابع متخصص در دوره اوج فعالیت", "متوسط", "متوسط", "مدیر منابع", "برنامه‌ریزی ظرفیت و استفاده از نیروی جایگزین"],
-    ["۴", "عدم یکپارچگی کامل با سامانه‌های موجود", "کم", "زیاد", "مسئول فنی", "اجرای آزمون یکپارچگی مرحله‌ای و محیط پایلوت"],
-  ];
   const actions = [
     ["۱", "بازبینی و تأیید نهایی مستندات فاز جاری", "مریم احمدی", "در حال انجام", "۱۴۰۵/۰۵/۲۰"],
     ["۲", "برگزاری جلسه هماهنگی با واحدهای ذی‌نفع", project.manager, "برنامه‌ریزی", "۱۴۰۵/۰۵/۲۵"],
@@ -537,7 +566,8 @@ function ProjectDashboard({ project }: { project: ProjectItem }) {
         {activeTab === "approvals" && <CharterApprovalsPanel projectId={project.id} />}
         {activeTab === "activities" && <DashboardTable title="فعالیت‌های سطح بالا" columns={["ردیف", "نام فعالیت", "تاریخ شروع", "تاریخ پایان", "وزن", "پیشرفت برنامه‌ای", "پیشرفت واقعی"]} rows={activities} />}
         {activeTab === "team" && <ProjectRolesPanel projectId={project.id} />}
-        {activeTab === "risks" && <DashboardTable title="ریسک‌های پروژه" columns={["ردیف", "عنوان ریسک", "احتمال", "اثر", "مسئول", "برنامه پاسخ"]} rows={risks} risk />}
+        {activeTab === "stakeholders" && <StakeholdersPanel projectId={project.id} readOnly />}
+        {activeTab === "risks" && <RiskRegisterPanel projectId={project.id} readOnly />}
         {activeTab === "actions" && <DashboardTable title="اقدامات مرتبط" columns={["ردیف", "عنوان اقدام", "فرد مسئول", "وضعیت", "تاریخ پایان"]} rows={actions} />}
       </div>
     </section>

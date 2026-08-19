@@ -77,6 +77,61 @@ public class ProjectsController(AppDbContext db, UserManager<AppUser> users) : C
         return Ok(new ApprovalDto(row.Id, row.Order, row.RoleTitle, row.ApproverName, row.Department, row.Status, row.DecisionDate, row.Comment));
     }
 
+    [HttpGet("{id:int}/wbs")]
+    public async Task<ActionResult<List<ProjectWbsItemDto>>> Wbs(int id)
+    {
+        if (!await HasAccessAsync(id, "view")) return Forbid();
+        return Ok(await db.ProjectWbsItems.AsNoTracking().Where(x => x.ProjectId == id).OrderBy(x => x.Code)
+            .Select(x => new ProjectWbsItemDto(x.Id, x.Code, x.ParentCode, x.Name, x.Duration, x.StartDate, x.EndDate, x.Weight, x.Owner, x.Planned, x.Actual, x.Cost, x.PersonHours, x.Importance, x.Complexity, x.PrerequisiteCode, x.RelationType, x.LagDays, x.CollaboratingUnit, x.ParticipationPercent, x.Deliverable, x.Requirements, x.QualityControl)).ToListAsync());
+    }
+
+    [HttpPut("{id:int}/wbs")]
+    public async Task<ActionResult<List<ProjectWbsItemDto>>> SaveWbs(int id, List<ProjectWbsItemDto> request)
+    {
+        if (!await HasAccessAsync(id, "wbs")) return Forbid();
+        db.ProjectWbsItems.RemoveRange(db.ProjectWbsItems.Where(x => x.ProjectId == id));
+        var rows = request.Select(x => new ProjectWbsItem { ProjectId=id, Code=x.Code, ParentCode=x.ParentCode, Name=x.Name, Duration=x.Duration, StartDate=x.StartDate, EndDate=x.EndDate, Weight=x.Weight, Owner=x.Owner, Planned=x.Planned, Actual=x.Actual, Cost=x.Cost, PersonHours=x.PersonHours, Importance=x.Importance, Complexity=x.Complexity, PrerequisiteCode=x.PrerequisiteCode, RelationType=x.RelationType, LagDays=x.LagDays, CollaboratingUnit=x.CollaboratingUnit, ParticipationPercent=x.ParticipationPercent, Deliverable=x.Deliverable, Requirements=x.Requirements, QualityControl=x.QualityControl }).ToList();
+        db.ProjectWbsItems.AddRange(rows);
+        await db.SaveChangesAsync();
+        return Ok(rows.Select(x => new ProjectWbsItemDto(x.Id, x.Code, x.ParentCode, x.Name, x.Duration, x.StartDate, x.EndDate, x.Weight, x.Owner, x.Planned, x.Actual, x.Cost, x.PersonHours, x.Importance, x.Complexity, x.PrerequisiteCode, x.RelationType, x.LagDays, x.CollaboratingUnit, x.ParticipationPercent, x.Deliverable, x.Requirements, x.QualityControl)));
+    }
+
+    [HttpGet("{id:int}/risks")]
+    public async Task<ActionResult<List<ProjectRiskDto>>> Risks(int id)
+    {
+        if (!await HasAccessAsync(id, "view")) return Forbid();
+        return Ok(await db.ProjectRisks.AsNoTracking().Where(x => x.ProjectId == id).OrderByDescending(x => x.Probability * x.Severity * x.Impact)
+            .Select(x => new ProjectRiskDto(x.Id, x.Title, x.Probability, x.Severity, x.Impact, x.Probability * x.Severity * x.Impact, x.ResponsePlan)).ToListAsync());
+    }
+
+    [HttpPut("{id:int}/risks")]
+    public async Task<ActionResult<List<ProjectRiskDto>>> SaveRisks(int id, List<ProjectRiskDto> request)
+    {
+        if (!await HasAccessAsync(id, "edit")) return Forbid();
+        db.ProjectRisks.RemoveRange(db.ProjectRisks.Where(x => x.ProjectId == id));
+        var rows = request.Select(x => new ProjectRisk { ProjectId=id, Title=x.Title, Probability=x.Probability, Severity=x.Severity, Impact=x.Impact, ResponsePlan=x.ResponsePlan }).ToList();
+        db.ProjectRisks.AddRange(rows); await db.SaveChangesAsync();
+        return Ok(rows.Select(x => new ProjectRiskDto(x.Id, x.Title, x.Probability, x.Severity, x.Impact, x.Probability * x.Severity * x.Impact, x.ResponsePlan)));
+    }
+
+    [HttpGet("{id:int}/stakeholders")]
+    public async Task<ActionResult<List<ProjectStakeholderDto>>> Stakeholders(int id)
+    {
+        if (!await HasAccessAsync(id, "view")) return Forbid();
+        return Ok(await db.ProjectStakeholders.AsNoTracking().Where(x => x.ProjectId == id).OrderBy(x => x.Id)
+            .Select(x => new ProjectStakeholderDto(x.Id, x.Name, x.RelationType, x.Expectations, x.Notes)).ToListAsync());
+    }
+
+    [HttpPut("{id:int}/stakeholders")]
+    public async Task<ActionResult<List<ProjectStakeholderDto>>> SaveStakeholders(int id, List<ProjectStakeholderDto> request)
+    {
+        if (!await HasAccessAsync(id, "edit")) return Forbid();
+        db.ProjectStakeholders.RemoveRange(db.ProjectStakeholders.Where(x => x.ProjectId == id));
+        var rows = request.Select(x => new ProjectStakeholder { ProjectId=id, Name=x.Name, RelationType=x.RelationType, Expectations=x.Expectations, Notes=x.Notes }).ToList();
+        db.ProjectStakeholders.AddRange(rows); await db.SaveChangesAsync();
+        return Ok(rows.Select(x => new ProjectStakeholderDto(x.Id, x.Name, x.RelationType, x.Expectations, x.Notes)));
+    }
+
     private async Task<bool> HasAccessAsync(int projectId, string permission)
     {
         if (User.IsInRole("Administrator")) return true;

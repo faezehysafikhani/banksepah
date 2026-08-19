@@ -25,6 +25,61 @@ public class Project
     public List<ProjectRole> Roles { get; set; } = [];
     public List<CharterApproval> CharterApprovals { get; set; } = [];
     public List<ProjectUserAccess> UserAccess { get; set; } = [];
+    public List<ProjectWbsItem> WbsItems { get; set; } = [];
+    public List<ProjectRisk> Risks { get; set; } = [];
+    public List<ProjectStakeholder> Stakeholders { get; set; } = [];
+}
+
+public class ProjectWbsItem
+{
+    public int Id { get; set; }
+    public int ProjectId { get; set; }
+    public Project? Project { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string ParentCode { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Duration { get; set; }
+    public string StartDate { get; set; } = string.Empty;
+    public string EndDate { get; set; } = string.Empty;
+    public decimal Weight { get; set; }
+    public string Owner { get; set; } = string.Empty;
+    public int Planned { get; set; }
+    public int Actual { get; set; }
+    public decimal Cost { get; set; }
+    public int PersonHours { get; set; }
+    public string Importance { get; set; } = "متوسط";
+    public string Complexity { get; set; } = "متوسط";
+    public string PrerequisiteCode { get; set; } = string.Empty;
+    public string RelationType { get; set; } = "FS";
+    public int LagDays { get; set; }
+    public string CollaboratingUnit { get; set; } = string.Empty;
+    public decimal ParticipationPercent { get; set; }
+    public string Deliverable { get; set; } = string.Empty;
+    public string Requirements { get; set; } = string.Empty;
+    public string QualityControl { get; set; } = string.Empty;
+}
+
+public class ProjectRisk
+{
+    public int Id { get; set; }
+    public int ProjectId { get; set; }
+    public Project? Project { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public int Probability { get; set; }
+    public int Severity { get; set; }
+    public int Impact { get; set; }
+    public string ResponsePlan { get; set; } = string.Empty;
+}
+
+public class ProjectStakeholder
+{
+    public int Id { get; set; }
+    public int ProjectId { get; set; }
+    public Project? Project { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string RelationType { get; set; } = "درون سازمانی";
+    public string Expectations { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
 }
 
 public class ProjectUserAccess
