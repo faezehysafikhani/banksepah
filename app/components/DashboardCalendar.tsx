@@ -1,23 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  BellRing,
-  CalendarDays,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardList,
-  Link2,
-  ListChecks,
-  MapPin,
-  MessageSquareText,
-  Plus,
-  Save,
-  UserRound,
-  UsersRound,
-  X,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BellRing, CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardList, Link2, ListChecks, MapPin, MessageSquareText, Plus, Save, UserRound, UsersRound, X } from "lucide-react";
+import { api } from "../lib/api";
 
 const monthNames = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
 const monthLengths = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29];
@@ -25,23 +10,26 @@ const monthStarts = [0, 3, 6, 2, 5, 1, 4, 6, 1, 3, 5, 0];
 const weekDays = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
 const officialHolidays: Record<number, Record<number, string>> = {
   0: { 1: "عید فطر و آغاز نوروز", 2: "تعطیلات نوروز و عید فطر", 3: "عید نوروز", 4: "عید نوروز", 12: "روز جمهوری اسلامی", 13: "روز طبیعت", 26: "شهادت امام جعفر صادق (ع)" },
-  2: { 6: "عید قربان", 14: "عید غدیر و رحلت امام خمینی (ره)", 15: "قیام ۱۵ خرداد" },
-  3: { 3: "تاسوعای حسینی", 4: "عاشورای حسینی" },
-  4: { 13: "اربعین حسینی", 21: "رحلت پیامبر اکرم (ص) و شهادت امام حسن (ع)", 22: "شهادت امام رضا (ع)", 30: "شهادت امام حسن عسکری (ع)" },
-  5: { 8: "میلاد پیامبر اکرم (ص) و امام جعفر صادق (ع)" },
+  2: { 6: "عید قربان", 14: "عید غدیر و رحلت امام خمینی (ره)", 15: "قیام ۱۵ خرداد" }, 3: { 3: "تاسوعای حسینی", 4: "عاشورای حسینی" },
+  4: { 13: "اربعین حسینی", 21: "رحلت پیامبر اکرم (ص) و شهادت امام حسن (ع)", 22: "شهادت امام رضا (ع)", 30: "شهادت امام حسن عسکری (ع)" }, 5: { 8: "میلاد پیامبر اکرم (ص) و امام جعفر صادق (ع)" },
 };
 
 type EventTab = "مشخصات رویداد" | "افراد مرتبط" | "دستور جلسه" | "صورتجلسه و اقدامات" | "یادآوری" | "ارتباط با وظایف";
-const eventTabs: { label: EventTab; icon: typeof CalendarDays }[] = [
-  { label: "مشخصات رویداد", icon: CalendarDays },
-  { label: "افراد مرتبط", icon: UsersRound },
-  { label: "دستور جلسه", icon: ListChecks },
-  { label: "صورتجلسه و اقدامات", icon: MessageSquareText },
-  { label: "یادآوری", icon: BellRing },
-  { label: "ارتباط با وظایف", icon: Link2 },
-];
+type Participant = { id: number; name: string; role: string };
+type Agenda = { id: number; order: number; title: string; durationMinutes: number };
+type EventAction = { id: number; title: string; assignee: string; dueDate: string; status: string };
+type Reminder = { id: number; offset: string; channel: string; enabled: boolean };
+type WorkTask = { id: number; title: string; projectName: string; assignee: string; status: string };
+type EventRecord = EventDraft & { id: number };
+type EventDraft = { title: string; eventType: string; organizer: string; persianYear: number; persianMonth: number; persianDay: number; startTime: string; endTime: string; location: string; description: string; minutes: string; participants: Participant[]; agendaItems: Agenda[]; actions: EventAction[]; reminders: Reminder[]; taskIds: number[] };
 
+const eventTabs: { label: EventTab; icon: typeof CalendarDays }[] = [
+  { label: "مشخصات رویداد", icon: CalendarDays }, { label: "افراد مرتبط", icon: UsersRound }, { label: "دستور جلسه", icon: ListChecks },
+  { label: "صورتجلسه و اقدامات", icon: MessageSquareText }, { label: "یادآوری", icon: BellRing }, { label: "ارتباط با وظایف", icon: Link2 },
+];
+const defaultPeople = ["مدیر سامانه", "علی رضایی", "مریم احمدی", "سارا محمدی"];
 function fa(value: number) { return new Intl.NumberFormat("fa-IR", { useGrouping: false }).format(value); }
+function emptyDraft(month: number, day: number): EventDraft { return { title: "", eventType: "جلسه", organizer: "مدیر سامانه", persianYear: 1405, persianMonth: month + 1, persianDay: day, startTime: "09:00", endTime: "10:30", location: "", description: "", minutes: "", participants: [{ id: 0, name: "مدیر سامانه", role: "برگزارکننده" }], agendaItems: [], actions: [], reminders: [{ id: 0, offset: "یک روز قبل", channel: "اعلان سامانه", enabled: true }, { id: 0, offset: "یک ساعت قبل", channel: "اعلان سامانه", enabled: true }, { id: 0, offset: "۱۵ دقیقه قبل", channel: "اعلان سامانه", enabled: false }], taskIds: [] }; }
 
 function PersianDatePicker({ month, day, onMonth, onDay }: { month: number; day: number; onMonth: (month: number) => void; onDay: (day: number) => void }) {
   const cells = [...Array(monthStarts[month]).fill(null), ...Array.from({ length: monthLengths[month] }, (_, index) => index + 1)];
@@ -49,40 +37,42 @@ function PersianDatePicker({ month, day, onMonth, onDay }: { month: number; day:
 }
 
 export default function DashboardCalendar() {
-  const [month, setMonth] = useState(4);
-  const [selectedDay, setSelectedDay] = useState(28);
-  const [eventOpen, setEventOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<EventTab>("مشخصات رویداد");
-  const [eventTitle, setEventTitle] = useState("");
-  const [events, setEvents] = useState([{ day: 28, title: "جلسه پایش سبد پروژه‌ها", time: "۱۰:۰۰" }, { day: 29, title: "کمیته راهبری تحول دیجیتال", time: "۱۴:۳۰" }]);
-  const [notice, setNotice] = useState("");
+  const [month, setMonth] = useState(4); const [selectedDay, setSelectedDay] = useState(28); const [eventOpen, setEventOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<EventTab>("مشخصات رویداد"); const [events, setEvents] = useState<EventRecord[]>([]); const [tasks, setTasks] = useState<WorkTask[]>([]);
+  const [people, setPeople] = useState(defaultPeople); const [draft, setDraft] = useState<EventDraft>(() => emptyDraft(4, 28)); const [taskPicker, setTaskPicker] = useState(false);
+  const [saving, setSaving] = useState(false); const [notice, setNotice] = useState(""); const [error, setError] = useState("");
   const cells = useMemo(() => [...Array(monthStarts[month]).fill(null), ...Array.from({ length: monthLengths[month] }, (_, index) => index + 1)], [month]);
 
-  function saveEvent() {
-    if (eventTitle.trim()) setEvents((current) => [...current, { day: selectedDay, title: eventTitle, time: "۰۹:۰۰" }]);
-    setEventOpen(false);
-    setEventTitle("");
-    setNotice("رویداد در تقویم شمسی ثبت شد.");
-    window.setTimeout(() => setNotice(""), 2400);
+  useEffect(() => { api<EventRecord[]>(`/events?year=1405&month=${month + 1}`).then(setEvents).catch(() => setEvents([])); }, [month]);
+  useEffect(() => { api<{ people: { name: string }[]; tasks: WorkTask[] }>("/events/references").then((data) => { setPeople([...new Set([...defaultPeople, ...data.people.map((item) => item.name)])]); setTasks(data.tasks); }).catch(() => undefined); }, []);
+
+  function openEvent(day: number) { setSelectedDay(day); setDraft(emptyDraft(month, day)); setActiveTab("مشخصات رویداد"); setError(""); setTaskPicker(false); setEventOpen(true); }
+  function update<K extends keyof EventDraft>(key: K, value: EventDraft[K]) { setDraft((current) => ({ ...current, [key]: value })); }
+  function addParticipant() { const name = people.find((item) => !draft.participants.some((person) => person.name === item)) ?? `فرد جدید ${fa(draft.participants.length + 1)}`; update("participants", [...draft.participants, { id: 0, name, role: "الزامی" }]); }
+  function addAgenda() { update("agendaItems", [...draft.agendaItems, { id: 0, order: draft.agendaItems.length + 1, title: "", durationMinutes: 20 }]); }
+  function addAction() { update("actions", [...draft.actions, { id: 0, title: "", assignee: "مدیر سامانه", dueDate: `${fa(1405)}/${fa(month + 1)}/${fa(selectedDay)}`, status: "برنامه‌ریزی" }]); }
+
+  async function saveEvent() {
+    if (!draft.title.trim()) { setError("عنوان رویداد را وارد کنید."); setActiveTab("مشخصات رویداد"); return; }
+    setSaving(true); setError("");
+    try {
+      const saved = await api<EventRecord>("/events", { method: "POST", body: JSON.stringify({ ...draft, persianMonth: month + 1, persianDay: selectedDay }) });
+      setEvents((current) => [...current, saved]); setEventOpen(false); setNotice("رویداد و تمام جزئیات آن در SQL Server ثبت شد."); window.setTimeout(() => setNotice(""), 2800);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "ذخیره رویداد انجام نشد."); } finally { setSaving(false); }
   }
 
   return <>
-    <article className="chart-card dashboard-calendar-card">
-      <div className="chart-title"><div><strong>تقویم شمسی مدیریتی</strong><small>رویدادها، جلسات و تعطیلات رسمی</small></div><button onClick={() => setEventOpen(true)}><Plus size={15} /> رویداد جدید</button></div>
-      <header className="calendar-month"><button onClick={() => setMonth((value) => (value + 11) % 12)}><ChevronRight size={17} /></button><div><strong>{monthNames[month]} ۱۴۰۵</strong><small>{month === 4 ? "۲۳ ژوئیه تا ۲۲ اوت ۲۰۲۶" : "تقویم رسمی ۱۴۰۵"}</small></div><button onClick={() => setMonth((value) => (value + 1) % 12)}><ChevronLeft size={17} /></button></header>
-      <div className="calendar-weekdays">{weekDays.map((item) => <span key={item}>{item}</span>)}</div>
-      <div className="calendar-grid">{cells.map((item, index) => item === null ? <i key={`empty-${index}`} /> : <button key={item} className={`${selectedDay === item ? "selected" : ""} ${officialHolidays[month]?.[item] || (monthStarts[month] + item - 1) % 7 === 6 ? "holiday" : ""} ${events.some((event) => event.day === item && month === 4) ? "has-event" : ""}`} onClick={() => { setSelectedDay(item); setActiveTab("مشخصات رویداد"); setEventOpen(true); }} title={`${officialHolidays[month]?.[item] ?? ""} ـ برای ثبت رویداد کلیک کنید`}><span>{fa(item)}</span>{officialHolidays[month]?.[item] && <em>تعطیل</em>}</button>)}</div>
-      <footer className="calendar-footer"><div><i /> تعطیلات رسمی</div><div><i /> رویداد ثبت‌شده</div><button onClick={() => setEventOpen(true)}>افزودن برای {fa(selectedDay)} {monthNames[month]}</button></footer>
-    </article>
+    <article className="chart-card dashboard-calendar-card"><div className="chart-title"><div><strong>تقویم شمسی مدیریتی</strong><small>رویدادها، جلسات و تعطیلات رسمی</small></div><button onClick={() => openEvent(selectedDay)}><Plus size={15} /> رویداد جدید</button></div><header className="calendar-month"><button onClick={() => setMonth((value) => (value + 11) % 12)}><ChevronRight size={17} /></button><div><strong>{monthNames[month]} ۱۴۰۵</strong><small>{month === 4 ? "۲۳ ژوئیه تا ۲۲ اوت ۲۰۲۶" : "تقویم رسمی ۱۴۰۵"}</small></div><button onClick={() => setMonth((value) => (value + 1) % 12)}><ChevronLeft size={17} /></button></header><div className="calendar-weekdays">{weekDays.map((item) => <span key={item}>{item}</span>)}</div><div className="calendar-grid">{cells.map((item, index) => item === null ? <i key={`empty-${index}`} /> : <button key={item} className={`${selectedDay === item ? "selected" : ""} ${officialHolidays[month]?.[item] || (monthStarts[month] + item - 1) % 7 === 6 ? "holiday" : ""} ${events.some((event) => event.persianDay === item) ? "has-event" : ""}`} onClick={() => openEvent(item)} title={`${officialHolidays[month]?.[item] ?? ""} ـ برای ثبت رویداد کلیک کنید`}><span>{fa(item)}</span>{officialHolidays[month]?.[item] && <em>تعطیل</em>}</button>)}</div><footer className="calendar-footer"><div><i /> تعطیلات رسمی</div><div><i /> رویداد ثبت‌شده</div><button onClick={() => openEvent(selectedDay)}>افزودن برای {fa(selectedDay)} {monthNames[month]}</button></footer></article>
 
     {eventOpen && <div className="ops-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setEventOpen(false); }}><section className="ops-modal calendar-event-modal" role="dialog" aria-modal="true" aria-label="رویداد جدید"><header><div><small>تقویم مدیریتی</small><h2>رویداد جدید</h2></div><button onClick={() => setEventOpen(false)} aria-label="بستن"><X size={19} /></button></header><nav>{eventTabs.map((item) => { const Icon = item.icon; return <button type="button" key={item.label} className={activeTab === item.label ? "active" : ""} onClick={() => setActiveTab(item.label)}><Icon size={16} />{item.label}</button>; })}</nav><div className="ops-modal-body event-tab-content">
-      {activeTab === "مشخصات رویداد" && <div className="event-main-grid"><div className="ops-form-grid"><label className="wide"><span>عنوان رویداد *</span><input value={eventTitle} onChange={(event) => setEventTitle(event.target.value)} placeholder="عنوان جلسه یا رویداد" /></label><label><span>نوع رویداد</span><select><option>جلسه</option><option>رویداد سازمانی</option><option>یادآوری</option><option>نقطه عطف پروژه</option></select></label><label><span>برگزارکننده</span><select><option>مدیر سامانه</option><option>دفتر مدیریت پروژه</option><option>کمیته راهبری</option></select></label><label><span>ساعت شروع</span><input type="time" step="900" defaultValue="09:00" /></label><label><span>ساعت پایان</span><input type="time" step="900" defaultValue="10:30" /></label><label className="wide"><span>مکان / لینک جلسه</span><div className="event-location"><MapPin size={16} /><input placeholder="اتاق جلسه یا نشانی آنلاین" /></div></label><label className="wide"><span>توضیحات</span><textarea rows={4} /></label></div><PersianDatePicker month={month} day={selectedDay} onMonth={setMonth} onDay={setSelectedDay} /></div>}
-      {activeTab === "افراد مرتبط" && <div className="event-people"><header><div><strong>شرکت‌کنندگان رویداد</strong><span>افراد و واحدهای مرتبط را انتخاب کنید.</span></div><button><Plus size={15} /> افزودن فرد</button></header>{["مدیر سامانه", "علی رضایی", "مریم احمدی", "سارا محمدی"].map((name, index) => <article key={name}><span><UserRound size={17} /></span><div><strong>{name}</strong><small>{index === 0 ? "برگزارکننده" : "عضو پروژه"}</small></div><select defaultValue={index === 0 ? "برگزارکننده" : "الزامی"}><option>برگزارکننده</option><option>الزامی</option><option>اختیاری</option><option>رونوشت</option></select><button><X size={15} /></button></article>)}</div>}
-      {activeTab === "دستور جلسه" && <div className="event-agenda"><header><strong>محورهای دستور جلسه</strong><button><Plus size={15} /> افزودن محور</button></header>{["مرور مصوبات جلسه قبل", "بررسی وضعیت پروژه‌های بحرانی", "تصمیم‌گیری درباره تخصیص منابع"].map((item, index) => <article key={item}><b>{fa(index + 1)}</b><input defaultValue={item} /><input defaultValue="۲۰ دقیقه" /><button><X size={15} /></button></article>)}</div>}
-      {activeTab === "صورتجلسه و اقدامات" && <div className="event-minutes"><label><span>متن صورتجلسه</span><textarea rows={7} placeholder="خلاصه گفتگوها، تصمیم‌ها و مصوبات جلسه..." /></label><header><strong>اقدامات منتج از جلسه</strong><button><Plus size={15} /> اقدام جدید</button></header><article><input placeholder="عنوان اقدام" /><select><option>علی رضایی</option><option>مریم احمدی</option></select><input value={`${fa(1405)}/${fa(month + 1)}/${fa(selectedDay)}`} readOnly /></article></div>}
-      {activeTab === "یادآوری" && <div className="event-reminders"><BellRing size={35} /><strong>یادآوری‌های رویداد</strong><p>زمان و کانال ارسال یادآوری برای شرکت‌کنندگان را تعیین کنید.</p>{["یک روز قبل", "یک ساعت قبل", "۱۵ دقیقه قبل"].map((item, index) => <label key={item}><input type="checkbox" defaultChecked={index < 2} /><span>{item}</span><select><option>اعلان سامانه</option><option>پیامک</option><option>ایمیل</option></select></label>)}</div>}
-      {activeTab === "ارتباط با وظایف" && <div className="event-tasks"><header><div><strong>وظایف و پروژه‌های مرتبط</strong><span>رویداد را به موارد موجود پیوند دهید.</span></div><button><Plus size={15} /> انتخاب وظیفه</button></header>{["بررسی و تأیید منشور پروژه", "به‌روزرسانی درصد پیشرفت فعالیت‌ها", "بارگذاری صورت‌جلسه کمیته راهبری"].map((item) => <label key={item}><input type="checkbox" /><span><ClipboardList size={16} />{item}</span><small>مرکز وظایف</small></label>)}</div>}
-    </div><footer><button className="secondary" onClick={() => setEventOpen(false)}>انصراف</button><button className="primary" onClick={saveEvent}><Save size={16} /> ذخیره رویداد</button></footer></section></div>}
+      {activeTab === "مشخصات رویداد" && <div className="event-main-grid"><div className="ops-form-grid"><label className="wide"><span>عنوان رویداد *</span><input value={draft.title} onChange={(event) => update("title", event.target.value)} placeholder="عنوان جلسه یا رویداد" /></label><label><span>نوع رویداد</span><select value={draft.eventType} onChange={(event) => update("eventType", event.target.value)}><option>جلسه</option><option>رویداد سازمانی</option><option>یادآوری</option><option>نقطه عطف پروژه</option></select></label><label><span>برگزارکننده</span><select value={draft.organizer} onChange={(event) => update("organizer", event.target.value)}>{people.map((person) => <option key={person}>{person}</option>)}</select></label><label><span>ساعت شروع</span><input type="time" step="900" value={draft.startTime} onChange={(event) => update("startTime", event.target.value)} /></label><label><span>ساعت پایان</span><input type="time" step="900" value={draft.endTime} onChange={(event) => update("endTime", event.target.value)} /></label><label className="wide"><span>مکان / لینک جلسه</span><div className="event-location"><MapPin size={16} /><input value={draft.location} onChange={(event) => update("location", event.target.value)} placeholder="اتاق جلسه یا نشانی آنلاین" /></div></label><label className="wide"><span>توضیحات</span><textarea rows={4} value={draft.description} onChange={(event) => update("description", event.target.value)} /></label></div><PersianDatePicker month={month} day={selectedDay} onMonth={setMonth} onDay={setSelectedDay} /></div>}
+      {activeTab === "افراد مرتبط" && <div className="event-people"><header><div><strong>شرکت‌کنندگان رویداد</strong><span>افراد و واحدهای مرتبط را انتخاب کنید.</span></div><button type="button" onClick={addParticipant}><Plus size={15} /> افزودن فرد</button></header>{draft.participants.map((person, index) => <article key={`${person.name}-${index}`}><span><UserRound size={17} /></span><div><select value={person.name} onChange={(event) => update("participants", draft.participants.map((item, row) => row === index ? { ...item, name: event.target.value } : item))}>{people.map((name) => <option key={name}>{name}</option>)}</select><small>{person.role}</small></div><select value={person.role} onChange={(event) => update("participants", draft.participants.map((item, row) => row === index ? { ...item, role: event.target.value } : item))}><option>برگزارکننده</option><option>الزامی</option><option>اختیاری</option><option>رونوشت</option></select><button type="button" onClick={() => update("participants", draft.participants.filter((_, row) => row !== index))}><X size={15} /></button></article>)}</div>}
+      {activeTab === "دستور جلسه" && <div className="event-agenda"><header><strong>محورهای دستور جلسه</strong><button type="button" onClick={addAgenda}><Plus size={15} /> افزودن محور</button></header>{draft.agendaItems.length === 0 && <div className="event-empty">هنوز محوری ثبت نشده است.</div>}{draft.agendaItems.map((item, index) => <article key={index}><b>{fa(index + 1)}</b><input value={item.title} onChange={(event) => update("agendaItems", draft.agendaItems.map((row, i) => i === index ? { ...row, title: event.target.value } : row))} placeholder="عنوان محور جلسه" /><input type="number" min="5" step="5" value={item.durationMinutes} onChange={(event) => update("agendaItems", draft.agendaItems.map((row, i) => i === index ? { ...row, durationMinutes: Number(event.target.value) } : row))} /><button type="button" onClick={() => update("agendaItems", draft.agendaItems.filter((_, i) => i !== index))}><X size={15} /></button></article>)}</div>}
+      {activeTab === "صورتجلسه و اقدامات" && <div className="event-minutes"><label><span>متن صورتجلسه</span><textarea rows={7} value={draft.minutes} onChange={(event) => update("minutes", event.target.value)} placeholder="خلاصه گفتگوها، تصمیم‌ها و مصوبات جلسه..." /></label><header><strong>اقدامات منتج از جلسه</strong><button type="button" onClick={addAction}><Plus size={15} /> اقدام جدید</button></header>{draft.actions.length === 0 && <div className="event-empty">برای ثبت مصوبه، «اقدام جدید» را بزنید.</div>}{draft.actions.map((item, index) => <article key={index}><input value={item.title} onChange={(event) => update("actions", draft.actions.map((row, i) => i === index ? { ...row, title: event.target.value } : row))} placeholder="عنوان اقدام" /><select value={item.assignee} onChange={(event) => update("actions", draft.actions.map((row, i) => i === index ? { ...row, assignee: event.target.value } : row))}>{people.map((name) => <option key={name}>{name}</option>)}</select><input value={item.dueDate} onChange={(event) => update("actions", draft.actions.map((row, i) => i === index ? { ...row, dueDate: event.target.value } : row))} /><button type="button" onClick={() => update("actions", draft.actions.filter((_, i) => i !== index))}><X size={15} /></button></article>)}</div>}
+      {activeTab === "یادآوری" && <div className="event-reminders"><BellRing size={35} /><strong>یادآوری‌های رویداد</strong><p>زمان و کانال ارسال یادآوری برای شرکت‌کنندگان را تعیین کنید.</p>{draft.reminders.map((item, index) => <label key={item.offset}><input type="checkbox" checked={item.enabled} onChange={(event) => update("reminders", draft.reminders.map((row, i) => i === index ? { ...row, enabled: event.target.checked } : row))} /><span>{item.offset}</span><select value={item.channel} onChange={(event) => update("reminders", draft.reminders.map((row, i) => i === index ? { ...row, channel: event.target.value } : row))}><option>اعلان سامانه</option><option>پیامک</option><option>ایمیل</option></select></label>)}</div>}
+      {activeTab === "ارتباط با وظایف" && <div className="event-tasks"><header><div><strong>وظایف و پروژه‌های مرتبط</strong><span>رویداد را به موارد موجود پیوند دهید.</span></div><button type="button" onClick={() => setTaskPicker((value) => !value)}><Plus size={15} /> انتخاب وظیفه</button></header>{taskPicker && <div className="task-picker">{tasks.map((task) => <label key={task.id}><input type="checkbox" checked={draft.taskIds.includes(task.id)} onChange={(event) => update("taskIds", event.target.checked ? [...draft.taskIds, task.id] : draft.taskIds.filter((id) => id !== task.id))} /><span>{task.title}</span><small>{task.projectName}</small></label>)}</div>}{tasks.filter((task) => draft.taskIds.includes(task.id)).map((task) => <label key={task.id}><input type="checkbox" checked readOnly /><span><ClipboardList size={16} />{task.title}</span><small>{task.projectName}</small></label>)}{draft.taskIds.length === 0 && !taskPicker && <div className="event-empty">هنوز وظیفه‌ای انتخاب نشده است.</div>}</div>}
+      {error && <div className="form-notice event-error"><X size={16} />{error}</div>}
+    </div><footer><button className="secondary" onClick={() => setEventOpen(false)}>انصراف</button><button className="primary" disabled={saving} onClick={saveEvent}><Save size={16} /> {saving ? "در حال ذخیره..." : "ذخیره رویداد"}</button></footer></section></div>}
     {notice && <div className="ops-toast"><Check size={16} />{notice}</div>}
   </>;
 }

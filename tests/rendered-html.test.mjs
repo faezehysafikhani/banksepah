@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 
 test("ships the Sepah project-management experience", async () => {
-  const [page, projects, operations, strategy, reports, users, calendar, wbs, layout, css, hosting] = await Promise.all([
+  const [page, projects, operations, strategy, reports, users, calendar, wbs, layout, css, hosting, backend, eventsApi] = await Promise.all([
     readFile(new URL("app/page.tsx", root), "utf8"),
     readFile(new URL("app/components/ProjectsWorkspace.tsx", root), "utf8"),
     readFile(new URL("app/components/OperationsWorkspace.tsx", root), "utf8"),
@@ -17,10 +17,12 @@ test("ships the Sepah project-management experience", async () => {
     readFile(new URL("app/layout.tsx", root), "utf8"),
     readFile(new URL("app/globals.css", root), "utf8"),
     readFile(new URL(".openai/hosting.json", root), "utf8"),
+    readFile(new URL("backend/Sepah.Pmo.Api/Program.cs", root), "utf8"),
+    readFile(new URL("backend/Sepah.Pmo.Api/Controllers/EventsController.cs", root), "utf8"),
   ]);
 
   assert.match(page, /سامانه مدیریت/);
-  assert.match(page, /\/api\/auth\/login/);
+  assert.match(page, /api<\{ user: AuthUser \}>\("\/auth\/login"/);
   assert.match(page, /داشبورد مدیریتی/);
   assert.match(page, /sidebar-nav/);
   assert.match(page, /ProjectsWorkspace/);
@@ -35,6 +37,8 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(projects, /function ProjectEditor/);
   assert.match(projects, /function ProjectDashboard/);
   assert.match(projects, /خلاصه منشور پروژه/);
+  assert.match(projects, /تأییدات منشور/);
+  assert.match(projects, /ارکان و تیم پروژه/);
   assert.match(projects, /فعالیت‌های سطح بالا/);
   assert.match(projects, /تیم پروژه/);
   assert.match(projects, /ریسک‌های پروژه/);
@@ -90,6 +94,10 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(calendar, /دستور جلسه/);
   assert.match(calendar, /صورتجلسه و اقدامات/);
   assert.match(calendar, /ارتباط با وظایف/);
+  assert.match(calendar, /onClick=\{addParticipant\}/);
+  assert.match(calendar, /onClick=\{addAgenda\}/);
+  assert.match(calendar, /onClick=\{addAction\}/);
+  assert.match(calendar, /\/events\/references/);
   assert.match(calendar, /اربعین حسینی/);
   assert.match(calendar, /شهادت امام رضا/);
   assert.doesNotMatch(calendar, /type="date"/);
@@ -121,6 +129,10 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(css, /\.ops-form-grid,[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
   assert.match(css, /\.event-main-grid[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
   assert.match(hosting, /"d1": "DB"/);
+  assert.match(backend, /UseSqlServer/);
+  assert.match(backend, /AddIdentityCore/);
+  assert.match(eventsApi, /EventTaskLinks/);
+  assert.match(eventsApi, /\[HttpPost\]/);
   await access(new URL("public/images.jpg", root));
   await access(new URL("public/mob.banking.android.sepah_512x512.webp", root));
   await access(new URL("public/fonts/IRANSans-Medium.ttf", root));

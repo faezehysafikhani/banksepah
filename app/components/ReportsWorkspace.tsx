@@ -29,6 +29,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import { API_BASE } from "../lib/api";
 
 type View = "داشبورد اجرایی" | "عملکرد سبد" | "زمان و پیشرفت" | "هزینه و بودجه" | "ریسک و اقدامات" | "گزارش‌ساز";
 type ReportModal = { type: "report" | "designer" | "drilldown"; title: string } | null;
@@ -71,6 +72,16 @@ export default function ReportsWorkspace({ collapsed }: { collapsed: boolean }) 
 
   const filteredReports = useMemo(() => reportCatalog.filter((item) => `${item.title} ${item.description} ${item.category}`.includes(search)), [search]);
   function notify(message: string) { setToast(message); window.setTimeout(() => setToast(""), 2400); }
+  async function downloadProjects() {
+    try {
+      const response = await fetch(`${API_BASE}/reports/projects.xlsx`, { credentials: "include" });
+      if (!response.ok) throw new Error();
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url; link.download = "گزارش-پروژه‌های-بانک-سپه.xlsx"; link.click(); URL.revokeObjectURL(url);
+      notify("خروجی واقعی Excel از SQL Server دریافت شد.");
+    } catch { notify("دریافت خروجی انجام نشد؛ Backend را اجرا کنید."); }
+  }
 
   const views: { label: View; icon: typeof LayoutDashboard }[] = [
     { label: "داشبورد اجرایی", icon: LayoutDashboard },
@@ -98,7 +109,7 @@ export default function ReportsWorkspace({ collapsed }: { collapsed: boolean }) 
   }
 
   function PortfolioView() {
-    return <section className="ops-panel report-table-panel"><header className="report-panel-heading"><div><small>تحلیل مقایسه‌ای</small><h2>عملکرد سبد پروژه‌ها</h2><p>مقایسه برنامه، عملکرد و سلامت اجرایی پروژه‌ها</p></div><div><button><Filter size={15} /> فیلترها <ChevronDown size={13} /></button><button onClick={() => notify("خروجی اکسل آماده شد.")}><FileSpreadsheet size={15} /> خروجی اکسل</button></div></header><div className="report-portfolio-chart">{portfolioRows.map((row) => <article key={row[0]}><div><strong>{row[0]}</strong><small>{row[1]}</small></div><div className="dual-progress"><span><i style={{ width: row[2] }} /><b>{row[2]}</b></span><span><i style={{ width: row[3] }} /><b>{row[3]}</b></span></div><Status value={row[5]} /></article>)}</div><div className="ops-table-wrap"><table><thead><tr><th>پروژه</th><th>واحد مالک</th><th>پیشرفت برنامه‌ای</th><th>پیشرفت واقعی</th><th>انحراف زمان</th><th>وضعیت</th><th>جزئیات</th></tr></thead><tbody>{portfolioRows.map((row) => <tr key={row[0]}>{row.map((cell, index) => <td key={cell}>{index === 0 ? <strong>{cell}</strong> : index === 5 ? <Status value={cell} /> : cell}</td>)}<td><button className="report-row-button" onClick={() => setModal({ type: "drilldown", title: row[0] })}><Eye size={14} /></button></td></tr>)}</tbody></table></div></section>;
+    return <section className="ops-panel report-table-panel"><header className="report-panel-heading"><div><small>تحلیل مقایسه‌ای</small><h2>عملکرد سبد پروژه‌ها</h2><p>مقایسه برنامه، عملکرد و سلامت اجرایی پروژه‌ها</p></div><div><button><Filter size={15} /> فیلترها <ChevronDown size={13} /></button><button onClick={downloadProjects}><FileSpreadsheet size={15} /> خروجی اکسل</button></div></header><div className="report-portfolio-chart">{portfolioRows.map((row) => <article key={row[0]}><div><strong>{row[0]}</strong><small>{row[1]}</small></div><div className="dual-progress"><span><i style={{ width: row[2] }} /><b>{row[2]}</b></span><span><i style={{ width: row[3] }} /><b>{row[3]}</b></span></div><Status value={row[5]} /></article>)}</div><div className="ops-table-wrap"><table><thead><tr><th>پروژه</th><th>واحد مالک</th><th>پیشرفت برنامه‌ای</th><th>پیشرفت واقعی</th><th>انحراف زمان</th><th>وضعیت</th><th>جزئیات</th></tr></thead><tbody>{portfolioRows.map((row) => <tr key={row[0]}>{row.map((cell, index) => <td key={cell}>{index === 0 ? <strong>{cell}</strong> : index === 5 ? <Status value={cell} /> : cell}</td>)}<td><button className="report-row-button" onClick={() => setModal({ type: "drilldown", title: row[0] })}><Eye size={14} /></button></td></tr>)}</tbody></table></div></section>;
   }
 
   function ProgressView() {

@@ -1,8 +1,9 @@
 "use client";
 
 import type { CSSProperties, FormEvent, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import WbsWorkspace from "./WbsWorkspace";
+import { api } from "../lib/api";
 import {
   Activity,
   CalendarRange,
@@ -124,8 +125,9 @@ function ProjectWorkspaceModal({ title, onClose, children }: { title: string; on
 
 const waterfallTabs = [
   ["charter", "منشور پروژه", FileText],
+  ["approvals", "تأییدات منشور", CheckCircle2],
   ["schedule", "برنامه زمان‌بندی پروژه", CalendarRange],
-  ["team", "تیم پروژه", Users],
+  ["team", "ارکان و تیم پروژه", Users],
   ["risks", "ریسک‌های پروژه", ShieldAlert],
   ["status", "وضعیت پروژه", Activity],
   ["delays", "دلایل تأخیر", Clock3],
@@ -135,7 +137,7 @@ const waterfallTabs = [
 ] as const;
 
 const agileTabs = [
-  ...waterfallTabs.slice(0, 8),
+  ...waterfallTabs.slice(0, 9),
   ["sprints", "اسپرینت", RefreshCcw],
 ] as const;
 
@@ -200,8 +202,41 @@ function CharterFields({ agile, project }: { agile: boolean; project?: ProjectIt
   );
 }
 
-function TabFields({ tab, agile }: { tab: string; agile: boolean }) {
+type ApprovalRow = { id: number; order: number; roleTitle: string; approverName: string; department: string; status: string; decisionDate?: string; comment?: string };
+type RoleRow = { id: number; roleType: string; fullName: string; position: string; personnelNumber: string; phone: string; email: string; serviceLocation: string };
+const approvalRoles = ["حامی طرح / مدیر برنامه", "مدیر پروژه", "ناظر پروژه", "معاون ذی‌ربط"];
+
+function CharterApprovalsPanel({ projectId }: { projectId?: number }) {
+  const [rows, setRows] = useState<ApprovalRow[]>(() => approvalRoles.map((roleTitle, index) => ({ id: 0, order: index + 1, roleTitle, approverName: "", department: "", status: "در انتظار" })));
+  const [notice, setNotice] = useState("");
+  useEffect(() => { if (projectId) api<ApprovalRow[]>(`/projects/${projectId}/charter-approvals`).then((data) => { if (data.length) setRows(data); }).catch(() => undefined); }, [projectId]);
+  async function save(row: ApprovalRow) {
+    if (!projectId || !row.id) { setNotice("گردش تأیید به پیش‌نویس پروژه افزوده شد."); return; }
+    await api<ApprovalRow>(`/projects/${projectId}/charter-approvals/${row.id}`, { method: "PUT", body: JSON.stringify(row) });
+    setNotice(`وضعیت «${row.roleTitle}» در SQL Server ذخیره شد.`);
+  }
+  return <div className="charter-approval-panel"><header><div><strong>گردش تأیید منشور پروژه</strong><small>مطابق فرم تأییدات منشور بانک سپه، امضاها به ترتیب زیر اخذ می‌شوند.</small></div><span>{rows.filter((row) => row.status === "تأیید شده").length} از {rows.length} تأیید</span></header><div className="approval-flow">{rows.map((row, index) => <article key={row.roleTitle}><b>{fa(index + 1)}</b><div className="approval-card-title"><strong>{row.roleTitle}</strong><small>{row.department || "واحد سازمانی تعیین نشده"}</small></div><input value={row.approverName} onChange={(event) => setRows((current) => current.map((item) => item.order === row.order ? { ...item, approverName: event.target.value } : item))} placeholder="نام تأییدکننده" /><input value={row.department} onChange={(event) => setRows((current) => current.map((item) => item.order === row.order ? { ...item, department: event.target.value } : item))} placeholder="واحد / معاونت" /><select value={row.status} onChange={(event) => setRows((current) => current.map((item) => item.order === row.order ? { ...item, status: event.target.value, decisionDate: event.target.value === "تأیید شده" ? "۱۴۰۵/۰۵/۲۸" : item.decisionDate } : item))}><option>در انتظار</option><option>در حال بررسی</option><option>تأیید شده</option><option>نیازمند اصلاح</option><option>رد شده</option></select><button type="button" onClick={() => save(row)}><Save size={15} /> ثبت</button></article>)}</div>{notice && <div className="form-notice"><CheckCircle2 size={16} />{notice}</div>}</div>;
+}
+
+function ProjectRolesPanel({ projectId }: { projectId?: number }) {
+  const [rows, setRows] = useState<RoleRow[]>([]); const [notice, setNotice] = useState("");
+  useEffect(() => { if (projectId) api<RoleRow[]>(`/projects/${projectId}/roles`).then(setRows).catch(() => undefined); }, [projectId]);
+  function addRow(roleType = "عضو تیم") { setRows((current) => [...current, { id: 0, roleType, fullName: "", position: "", personnelNumber: "", phone: "", email: "", serviceLocation: "" }]); }
+  async function save(row: RoleRow, index: number) {
+    if (!projectId || row.id) { setNotice(row.id ? "اطلاعات این رکن در پرونده پروژه موجود است." : "رکن جدید به پیش‌نویس افزوده شد."); return; }
+    const saved = await api<RoleRow>(`/projects/${projectId}/roles`, { method: "POST", body: JSON.stringify(row) });
+    setRows((current) => current.map((item, i) => i === index ? saved : item)); setNotice("رکن پروژه در SQL Server ثبت شد.");
+  }
+  async function remove(row: RoleRow, index: number) { if (projectId && row.id) await api<void>(`/projects/${projectId}/roles/${row.id}`, { method: "DELETE" }); setRows((current) => current.filter((_, i) => i !== index)); }
+  const renderRows = (items: [RoleRow, number][]) => items.map(([row, index]) => <article key={`${row.id}-${index}`}><select value={row.roleType} onChange={(event) => setRows((current) => current.map((item, i) => i === index ? { ...item, roleType: event.target.value } : item))}>{["حامی طرح / مدیر برنامه", "مدیر پروژه", "ناظر پروژه", "عضو تیم"].map((role) => <option key={role}>{role}</option>)}</select>{(["fullName","position","personnelNumber","phone","email","serviceLocation"] as const).map((key) => <input key={key} value={row[key]} onChange={(event) => setRows((current) => current.map((item, i) => i === index ? { ...item, [key]: event.target.value } : item))} placeholder={({ fullName:"نام و نام خانوادگی",position:"سمت فعلی",personnelNumber:"شماره پرسنلی",phone:"تلفن",email:"ایمیل سازمانی",serviceLocation:"محل خدمت" } as const)[key]} />)}<div><button type="button" onClick={() => save(row,index)}><Save size={14} /></button><button type="button" onClick={() => remove(row,index)}><Trash2 size={14} /></button></div></article>);
+  const indexed = rows.map((row,index) => [row,index] as [RoleRow,number]);
+  return <div className="project-roles-panel"><header><div><strong>ارکان اصلی پروژه</strong><small>حامی، مدیر و ناظر پروژه مطابق فرم بانک سپه</small></div><button type="button" onClick={() => addRow("حامی طرح / مدیر برنامه")}><PlusIcon /> افزودن رکن</button></header><div className="roles-table"><div className="roles-head"><span>نقش</span><span>نام</span><span>سمت</span><span>پرسنلی</span><span>تلفن</span><span>ایمیل</span><span>محل خدمت</span><span>عملیات</span></div>{renderRows(indexed.filter(([row]) => row.roleType !== "عضو تیم"))}</div><header className="team-heading"><div><strong>اعضای تیم پروژه</strong><small>مشخصات اعضای اجرایی و تخصصی</small></div><button type="button" onClick={() => addRow()}><PlusIcon /> افزودن عضو</button></header><div className="roles-table">{renderRows(indexed.filter(([row]) => row.roleType === "عضو تیم"))}</div>{notice && <div className="form-notice"><CheckCircle2 size={16} />{notice}</div>}</div>;
+}
+function PlusIcon() { return <span aria-hidden="true">＋</span>; }
+
+function TabFields({ tab, agile, projectId }: { tab: string; agile: boolean; projectId?: number }) {
   if (tab === "charter") return <CharterFields agile={agile} />;
+  if (tab === "approvals") return <CharterApprovalsPanel projectId={projectId} />;
   if (tab === "schedule") return (
     <div className="project-form-grid">
       <Field label="روش زمان‌بندی" type="select" options={["مسیر بحرانی (CPM)", "نقاط عطف", "اسپرینت‌محور"]} />
@@ -212,18 +247,7 @@ function TabFields({ tab, agile }: { tab: string; agile: boolean }) {
       <Field label="نقاط عطف کلیدی" type="textarea" placeholder="عنوان نقطه عطف، تاریخ و معیار پذیرش..." />
     </div>
   );
-  if (tab === "team") return (
-    <div className="project-form-grid">
-      <Field label="حامی پروژه" type="select" options={["معاونت فناوری اطلاعات", "معاونت طرح و برنامه", "مدیریت ارشد"]} />
-      <Field label="مدیر پروژه" type="select" options={["مدیر سامانه", "علی رضایی", "مریم احمدی"]} />
-      {agile && <Field label="مالک محصول" type="select" options={["مدیر سامانه", "مریم احمدی"]} />}
-      {agile && <Field label="اسکرام مستر" type="select" options={["علی رضایی", "رضا کریمی"]} />}
-      <Field label="عضو تیم" type="select" options={["کارشناس تحلیل", "کارشناس زیرساخت", "کارشناس امنیت", "نماینده کسب‌وکار"]} />
-      <Field label="نقش و مسئولیت" placeholder="نقش عضو در پروژه" />
-      <Field label="واحد سازمانی" type="select" options={["فناوری اطلاعات", "امور اجرایی", "پشتیبانی"]} />
-      <Field label="درصد تخصیص" type="number" placeholder="۰ تا ۱۰۰" />
-    </div>
-  );
+  if (tab === "team") return <ProjectRolesPanel projectId={projectId} />;
   if (tab === "risks") return (
     <div className="project-form-grid">
       <Field label="عنوان ریسک" required />
@@ -391,7 +415,7 @@ function ProjectEditor({ project, onUpdate }: { project: ProjectItem; onUpdate: 
             <div><strong>{tabs.find(([id]) => id === activeTab)?.[1]}</strong><small>اطلاعات پروژه انتخاب‌شده را مشاهده و بروزرسانی کنید.</small></div>
             <em>پروژه: {project.name}</em>
           </div>
-          {activeTab === "charter" ? <CharterFields agile={agile} project={project} /> : <TabFields tab={activeTab} agile={agile} />}
+          {activeTab === "charter" ? <CharterFields agile={agile} project={project} /> : <TabFields tab={activeTab} agile={agile} projectId={project.id} />}
           {notice && <div className="form-notice"><CheckCircle2 size={17} />{notice}<button type="button" onClick={() => setNotice("")}><X size={15} /></button></div>}
           <footer className="creator-actions"><button type="button" className="draft-button" onClick={() => setNotice("تغییرات این بخش به‌صورت پیش‌نویس نگهداری شد.")}><Save size={17} /> ذخیره پیش‌نویس</button><button type="submit" className="submit-button"><Save size={17} /> بروزرسانی پروژه</button></footer>
         </form>
@@ -402,8 +426,9 @@ function ProjectEditor({ project, onUpdate }: { project: ProjectItem; onUpdate: 
 
 const dashboardTabs = [
   ["charter", "خلاصه منشور پروژه", FileText],
+  ["approvals", "تأییدات منشور", CheckCircle2],
   ["activities", "فعالیت‌های سطح بالا", Layers3],
-  ["team", "تیم پروژه", Users],
+  ["team", "ارکان و تیم پروژه", Users],
   ["risks", "ریسک‌های پروژه", ShieldAlert],
   ["actions", "اقدامات مرتبط", ListChecks],
 ] as const;
@@ -418,12 +443,6 @@ function ProjectDashboard({ project }: { project: ProjectItem }) {
     ["۲", "طراحی معماری و برنامه اجرایی", "۱۴۰۵/۰۳/۱۶", "۱۴۰۵/۰۵/۳۰", "۲۵", "۹۵٪", "۸۲٪"],
     ["۳", "پیاده‌سازی و یکپارچه‌سازی", "۱۴۰۵/۰۶/۰۱", "۱۴۰۵/۰۹/۳۰", "۴۰", "۷۰٪", "۵۸٪"],
     ["۴", "آزمون، آموزش و تحویل نهایی", "۱۴۰۵/۱۰/۰۱", project.end, "۱۵", "۲۰٪", "۱۰٪"],
-  ];
-  const team = [
-    ["۱", project.manager, "مدیر پروژه", project.owner],
-    ["۲", "مریم احمدی", "کارشناس تحلیل و برنامه‌ریزی", "فناوری اطلاعات"],
-    ["۳", "علی رضایی", "مسئول فنی پروژه", "فناوری اطلاعات"],
-    ["۴", "سارا محمدی", "نماینده کسب‌وکار", project.owner],
   ];
   const risks = [
     ["۱", "تأخیر در تأمین زیرساخت و تجهیزات کلیدی پروژه", "زیاد", "زیاد", "مدیر پروژه", "تدوین برنامه تأمین جایگزین و کنترل هفتگی زمان تحویل"],
@@ -461,8 +480,9 @@ function ProjectDashboard({ project }: { project: ProjectItem }) {
           </div>
         </div>}
 
+        {activeTab === "approvals" && <CharterApprovalsPanel projectId={project.id} />}
         {activeTab === "activities" && <DashboardTable title="فعالیت‌های سطح بالا" columns={["ردیف", "نام فعالیت", "تاریخ شروع", "تاریخ پایان", "وزن", "پیشرفت برنامه‌ای", "پیشرفت واقعی"]} rows={activities} />}
-        {activeTab === "team" && <DashboardTable title="اعضای تیم پروژه" columns={["ردیف", "نام و نام خانوادگی", "نقش در پروژه", "واحد سازمانی"]} rows={team} />}
+        {activeTab === "team" && <ProjectRolesPanel projectId={project.id} />}
         {activeTab === "risks" && <DashboardTable title="ریسک‌های پروژه" columns={["ردیف", "عنوان ریسک", "احتمال", "اثر", "مسئول", "برنامه پاسخ"]} rows={risks} risk />}
         {activeTab === "actions" && <DashboardTable title="اقدامات مرتبط" columns={["ردیف", "عنوان اقدام", "فرد مسئول", "وضعیت", "تاریخ پایان"]} rows={actions} />}
       </div>

@@ -4,6 +4,7 @@ import type { FormEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { api } from "./lib/api";
 import {
   BarChart3,
   Bell,
@@ -110,19 +111,13 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
     setError("");
     setSubmitting(true);
     try {
-      const response = await fetch("/api/auth/login", {
+      const result = await api<{ user: AuthUser }>("/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      const result = (await response.json()) as { user?: AuthUser; error?: string };
-      if (!response.ok || !result.user) {
-        setError(result.error ?? "ورود به سامانه انجام نشد.");
-        return;
-      }
       onAuthenticated(result.user);
-    } catch {
-      setError("ارتباط با سرور برقرار نشد.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "ارتباط با سرور برقرار نشد.");
     } finally {
       setSubmitting(false);
     }
@@ -365,8 +360,7 @@ export default function Home() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/auth/session", { cache: "no-store", signal: controller.signal })
-      .then((response) => response.ok ? response.json() as Promise<{ user?: AuthUser }> : null)
+    api<{ user?: AuthUser }>("/auth/me", { cache: "no-store", signal: controller.signal })
       .then((result) => { if (result?.user) setUser(result.user); })
       .catch(() => undefined)
       .finally(() => { if (!controller.signal.aborted) setChecking(false); });
@@ -374,7 +368,7 @@ export default function Home() {
   }, []);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await api<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
     setUser(null);
   }
 

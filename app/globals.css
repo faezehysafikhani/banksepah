@@ -2536,3 +2536,35 @@ body { font-size: 13px; }
     animation: none;
   }
 }
+
+/* Functional event editor additions */
+.event-minutes article { grid-template-columns: minmax(220px,1fr) 160px 130px 34px; }
+.event-minutes article > button { min-height: 34px; display: grid; place-items: center; color: #9c4050; border: 1px solid rgba(170,58,76,.13); border-radius: 9px; background: rgba(255,255,255,.5); }
+.event-empty { min-height: 82px; display: grid; place-items: center; color: #6a8994; border: 1px dashed rgba(0,117,148,.24); border-radius: 14px; background: rgba(255,255,255,.26); }
+.task-picker { margin-bottom: 10px; max-height: 230px; padding: 8px; overflow: auto; border: 1px solid rgba(255,255,255,.76); border-radius: 14px; background: rgba(255,255,255,.36); box-shadow: inset 0 1px rgba(255,255,255,.7), 0 12px 30px rgba(0,72,96,.08); }
+.task-picker > label { border-radius: 9px; }
+.event-error { margin-top: 12px; color: #a93745; border-color: rgba(208,55,71,.2); background: rgba(255,226,230,.68); }
+.event-people article div > select { width: 100%; min-height: 31px; padding: 4px 6px; color: #234f5f; border: 0; background: transparent; font: inherit; font-weight: 700; }
+@media (max-width: 720px) { .event-minutes article { grid-template-columns: 1fr; } }
+
+/* Project charter approvals and project-role register */
+.charter-approval-panel, .project-roles-panel { display: grid; gap: 13px; }
+.charter-approval-panel > header, .project-roles-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.charter-approval-panel > header > div, .project-roles-panel > header > div { display: grid; gap: 4px; }
+.charter-approval-panel header small, .project-roles-panel header small { color: #65838e; }
+.charter-approval-panel header > span { padding: 7px 11px; color: #087d9b; border: 1px solid rgba(0,122,151,.14); border-radius: 999px; background: rgba(255,255,255,.46); }
+.approval-flow { display: grid; gap: 8px; }
+.approval-flow > article { min-height: 64px; padding: 9px; display: grid; grid-template-columns: 36px 1fr minmax(140px,1fr) minmax(140px,1fr) 125px 72px; align-items: center; gap: 7px; border: 1px solid rgba(255,255,255,.76); border-radius: 14px; background: linear-gradient(145deg, rgba(255,255,255,.54), rgba(205,241,247,.34)); box-shadow: 0 10px 24px rgba(0,74,98,.08), inset 0 1px white; }
+.approval-flow > article > b { width: 33px; height: 33px; display: grid; place-items: center; color: white; border-radius: 10px; background: linear-gradient(135deg,#087e9f,#19b7c8); }
+.approval-card-title { display: grid; gap: 3px; }
+.approval-flow input, .approval-flow select { width: 100%; padding: 7px 8px; }
+.approval-flow button, .project-roles-panel header button { min-height: 36px; padding: 7px 9px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; color: white; border: 1px solid rgba(255,255,255,.54); border-radius: 10px; background: linear-gradient(135deg,#087e9f,#16b5c8); font: inherit; }
+.roles-table { min-width: 0; overflow-x: auto; border: 1px solid rgba(255,255,255,.72); border-radius: 14px; background: rgba(255,255,255,.25); }
+.roles-head, .roles-table > article { min-width: 1030px; padding: 7px; display: grid; grid-template-columns: 155px 150px 150px 95px 105px 175px 140px 70px; align-items: center; gap: 6px; }
+.roles-head { color: #476f7d; font-weight: 700; background: rgba(255,255,255,.34); }
+.roles-table > article { border-top: 1px solid rgba(0,96,124,.08); }
+.roles-table :is(input,select) { width: 100%; min-height: 36px; padding: 6px; }
+.roles-table article > div { display: flex; gap: 4px; }
+.roles-table article button { width: 31px; height: 31px; display: grid; place-items: center; color: #087d9b; border: 1px solid rgba(0,110,139,.13); border-radius: 8px; background: rgba(255,255,255,.54); }
+.team-heading { margin-top: 7px; }
+@media (max-width: 980px) { .approval-flow > article { grid-template-columns: 36px 1fr 1fr; } .approval-flow > article > :nth-child(n+5) { grid-column: auto; } }

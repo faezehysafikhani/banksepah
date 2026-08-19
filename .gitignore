@@ -40,6 +40,11 @@ yarn-error.log*
 /outputs/
 /work/
 
+# .NET build output and local runtime files
+**/bin/
+**/obj/
+*.user
+
 # local libSQL dev database (Turso is used in production)
 /.data/
 
