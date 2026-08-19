@@ -101,6 +101,8 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(css, /\.projects-workspace[\s\S]*?overflow-x:\s*hidden/);
   assert.match(css, /\.dashboard-main[\s\S]*?overflow-x:\s*hidden/);
   assert.match(css, /\.project-full-content[^}]*overflow-x:\s*hidden/);
+  assert.match(css, /\.project-full-modal[^}]*width:\s*100%[^}]*max-width:\s*1480px/);
+  assert.doesNotMatch(css, /\.project-full-modal[^}]*calc\(100vw/);
   assert.match(css, /\.creator-tabs[^}]*grid-template-columns:\s*repeat\(auto-fit/);
   assert.match(css, /Responsive form geometry/);
   assert.match(css, /\.ops-form-grid,[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
