@@ -5,7 +5,7 @@ import test from "node:test";
 const root = new URL("../", import.meta.url);
 
 test("ships the Sepah project-management experience", async () => {
-  const [page, projects, operations, strategy, reports, users, calendar, wbs, layout, css, hosting, backend, eventsApi] = await Promise.all([
+  const [page, projects, operations, strategy, reports, users, calendar, persianInputs, wbs, layout, css, hosting, backend, eventsApi, usersApi] = await Promise.all([
     readFile(new URL("app/page.tsx", root), "utf8"),
     readFile(new URL("app/components/ProjectsWorkspace.tsx", root), "utf8"),
     readFile(new URL("app/components/OperationsWorkspace.tsx", root), "utf8"),
@@ -13,12 +13,14 @@ test("ships the Sepah project-management experience", async () => {
     readFile(new URL("app/components/ReportsWorkspace.tsx", root), "utf8"),
     readFile(new URL("app/components/UsersWorkspace.tsx", root), "utf8"),
     readFile(new URL("app/components/DashboardCalendar.tsx", root), "utf8"),
+    readFile(new URL("app/components/PersianInputs.tsx", root), "utf8"),
     readFile(new URL("app/components/WbsWorkspace.tsx", root), "utf8"),
     readFile(new URL("app/layout.tsx", root), "utf8"),
     readFile(new URL("app/globals.css", root), "utf8"),
     readFile(new URL(".openai/hosting.json", root), "utf8"),
     readFile(new URL("backend/Sepah.Pmo.Api/Program.cs", root), "utf8"),
     readFile(new URL("backend/Sepah.Pmo.Api/Controllers/EventsController.cs", root), "utf8"),
+    readFile(new URL("backend/Sepah.Pmo.Api/Controllers/UsersController.cs", root), "utf8"),
   ]);
 
   assert.match(page, /سامانه مدیریت/);
@@ -84,8 +86,10 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(users, /مدیریت WBS و زمان‌بندی/);
   assert.match(users, /تخصیص نقش و دسترسی/);
   assert.match(users, /مدیریت گردش کار/);
-  assert.match(calendar, /PersianDatePicker/);
-  assert.match(calendar, /type="time"/);
+  assert.match(calendar, /PersianDateInput/);
+  assert.match(calendar, /TimeSelect/);
+  assert.match(persianInputs, /تقویم رسمی شمسی/);
+  assert.match(persianInputs, /دقیقه/);
   assert.match(calendar, /setEventOpen\(true\)/);
   assert.doesNotMatch(calendar, /onDoubleClick/);
   assert.match(calendar, /تقویم شمسی مدیریتی/);
@@ -101,6 +105,8 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(calendar, /اربعین حسینی/);
   assert.match(calendar, /شهادت امام رضا/);
   assert.doesNotMatch(calendar, /type="date"/);
+  assert.match(users, /دسترسی پروژه‌ای/);
+  assert.match(usersApi, /ProjectUserAccess/);
   assert.ok(page.indexOf("<DashboardCalendar />") < page.indexOf("status-chart-card"));
   assert.ok(page.indexOf("dashboard-owner-row") > page.indexOf("dashboard-primary-charts"));
   assert.match(projects, /ProjectWorkspaceModal/);

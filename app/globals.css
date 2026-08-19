@@ -2568,3 +2568,60 @@ body { font-size: 13px; }
 .roles-table article button { width: 31px; height: 31px; display: grid; place-items: center; color: #087d9b; border: 1px solid rgba(0,110,139,.13); border-radius: 8px; background: rgba(255,255,255,.54); }
 .team-heading { margin-top: 7px; }
 @media (max-width: 980px) { .approval-flow > article { grid-template-columns: 36px 1fr 1fr; } .approval-flow > article > :nth-child(n+5) { grid-column: auto; } }
+
+/* Compact, scroll-free project forms */
+.project-full-backdrop { align-items: start; overflow-y: auto; }
+.project-full-modal { height: auto; min-height: calc(100vh - 48px); max-height: none; overflow: visible; }
+.project-full-content { height: auto; overflow: visible; }
+.project-editor-form, .creator-form { min-height: 0; }
+.creator-tabs { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
+.creator-tabs button { min-height: 48px; padding: 7px 5px; font-size: 11px; white-space: normal; line-height: 1.45; }
+.roles-table { overflow: visible; }
+.roles-head, .roles-table > article { min-width: 0; grid-template-columns: 1.15fr 1.15fr 1.3fr .72fr .85fr 1.35fr 1.05fr 66px; gap: 5px; }
+.roles-table :is(input,select) { min-width: 0; padding: 5px; font-size: 11px; }
+.roles-head { font-size: 11px; }
+
+/* Persian date and readable time controls */
+.persian-input, .time-select { position: relative; min-width: 0; }
+.custom-form-field { min-width: 0; display: grid; align-content: start; gap: 6px; }
+.custom-form-field > span { color: #234f60; font-weight: 700; }
+.persian-input-trigger, .time-select-trigger { width: 100%; min-height: 44px; padding: 8px 11px; display: flex; align-items: center; gap: 8px; color: #214e5f; border: 1px solid rgba(0,112,143,.2); border-radius: 12px; background: linear-gradient(145deg, rgba(255,255,255,.8), rgba(224,246,249,.58)); box-shadow: inset 0 1px white, 0 7px 16px rgba(0,68,92,.06); font: inherit; text-align: right; }
+.persian-input-trigger svg, .time-select-trigger svg { color: #078aa9; }
+.persian-input-trigger .placeholder { color: #879ca4; }
+.persian-calendar-popover, .time-select-popover { width: 330px; padding: 12px; position: absolute; z-index: 80; top: calc(100% + 7px); right: 0; color: #173e4e; border: 1px solid rgba(255,255,255,.92); border-radius: 17px; background: linear-gradient(145deg, rgba(249,255,255,.98), rgba(213,243,247,.97)); box-shadow: 0 24px 55px rgba(0,42,61,.28), inset 0 1px white; backdrop-filter: blur(25px); }
+.persian-calendar-popover > header { display: grid; grid-template-columns: 35px 1fr 35px; align-items: center; gap: 7px; }
+.persian-calendar-popover > header > div { display: grid; grid-template-columns: 1.3fr .8fr; gap: 6px; }
+.persian-calendar-popover :is(select,button) { min-height: 34px; border: 1px solid rgba(0,111,141,.12); border-radius: 9px; background: rgba(255,255,255,.62); font: inherit; }
+.persian-calendar-week, .persian-calendar-days { margin-top: 8px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.persian-calendar-week span { padding: 5px; color: #708994; font-size: 11px; }
+.persian-calendar-days :is(button,i) { min-height: 35px; }
+.persian-calendar-days button { color: #214d5d; border: 1px solid transparent; border-radius: 9px; background: rgba(255,255,255,.34); font: inherit; }
+.persian-calendar-days button:hover { border-color: rgba(0,150,181,.24); background: rgba(255,255,255,.82); }
+.persian-calendar-days button.selected { color: white; background: linear-gradient(135deg,#0789aa,#15b7ca); box-shadow: 0 7px 15px rgba(0,112,142,.2); }
+.persian-calendar-days button.holiday { color: #d44755; }
+.persian-calendar-popover > footer { margin-top: 9px; padding-top: 8px; display: flex; align-items: center; justify-content: space-between; color: #64808a; border-top: 1px solid rgba(0,103,131,.09); }
+.persian-calendar-popover > footer button { padding: 5px 8px; color: #c34350; }
+.time-select-popover { width: 270px; }
+.time-select-popover > div { display: grid; grid-template-columns: 1fr 15px 1fr; align-items: end; gap: 7px; }
+.time-select-popover label { display: grid; gap: 5px; color: #607e89; }
+.time-select-popover select { min-height: 44px; color: #153f50; border: 1px solid rgba(0,111,141,.14); border-radius: 10px; background: rgba(255,255,255,.68); font: inherit; text-align: center; }
+.time-select-popover footer { margin-top: 10px; display: flex; justify-content: space-between; }
+.time-select-popover footer button { min-height: 35px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 5px; color: #087f9f; border: 1px solid rgba(0,111,141,.14); border-radius: 9px; background: rgba(255,255,255,.62); font: inherit; }
+
+/* Project-level authorization matrix */
+.project-access-matrix { margin: 0 0 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.8); border-radius: 16px; background: linear-gradient(145deg,rgba(255,255,255,.55),rgba(191,235,242,.34)); box-shadow: 0 14px 32px rgba(0,67,91,.09), inset 0 1px white; }
+.project-access-matrix > header { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,103,133,.09); background: rgba(255,255,255,.28); }
+.project-access-matrix > header > div { display: grid; gap: 3px; }
+.project-access-matrix > header span, .project-access-row small { color: #64818c; }
+.project-access-matrix > header svg { color: #0789aa; }
+.project-access-head, .project-access-row { padding: 8px 12px; display: grid; grid-template-columns: minmax(260px,1fr) repeat(5,78px); align-items: center; gap: 5px; text-align: center; }
+.project-access-head { color: #466c79; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.28); }
+.project-access-head > span:first-child { text-align: right; }
+.project-access-row { min-height: 54px; border-top: 1px solid rgba(0,99,128,.08); }
+.project-access-row > div { display: grid; gap: 2px; text-align: right; }
+.project-access-row label { display: grid; place-items: center; }
+.project-access-row input { width: 18px; height: 18px; min-height: 0; accent-color: #0797b6; }
+.project-access-empty { margin: 0; padding: 24px; color: #64818c; text-align: center; }
+@media (max-width: 1100px) { .roles-head { display: none; } .roles-table { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; border: 0; background: transparent; } .roles-table > article { padding: 9px; grid-template-columns: repeat(2,minmax(0,1fr)); border: 1px solid rgba(255,255,255,.72); border-radius: 13px; background: rgba(255,255,255,.3); } }
+@media (max-width: 900px) { .project-access-head { display: none; } .project-access-row { grid-template-columns: repeat(5,1fr); gap: 9px; } .project-access-row > div { grid-column: 1 / -1; padding-bottom: 6px; border-bottom: 1px solid rgba(0,99,128,.08); } .project-access-row label { gap: 3px; } .project-access-row label::before { color: #64818c; font-size: 10px; } .project-access-row label:nth-of-type(1)::before { content:"مشاهده"; } .project-access-row label:nth-of-type(2)::before { content:"ویرایش"; } .project-access-row label:nth-of-type(3)::before { content:"تیم"; } .project-access-row label:nth-of-type(4)::before { content:"WBS"; } .project-access-row label:nth-of-type(5)::before { content:"تأیید"; } }
+@media (max-width: 640px) { .roles-table { grid-template-columns: 1fr; } .persian-calendar-popover, .time-select-popover { width: min(330px, calc(100vw - 64px)); right: auto; left: 0; } }

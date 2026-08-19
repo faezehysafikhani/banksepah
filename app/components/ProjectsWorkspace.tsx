@@ -4,6 +4,7 @@ import type { CSSProperties, FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import WbsWorkspace from "./WbsWorkspace";
 import { api } from "../lib/api";
+import { PersianDateInput } from "./PersianInputs";
 import {
   Activity,
   CalendarRange,
@@ -167,6 +168,8 @@ function Field({
       <span>{label}{required && <b>*</b>}</span>
       {type === "textarea" ? (
         <textarea placeholder={placeholder} defaultValue={value} required={required} />
+      ) : type === "date" ? (
+        <PersianDateInput defaultValue={value} />
       ) : type === "select" ? (
         <select defaultValue={value ?? ""}>
           <option value="" disabled>انتخاب کنید</option>
@@ -509,6 +512,27 @@ export default function ProjectsWorkspace({ collapsed }: { collapsed: boolean; s
   const [owner, setOwner] = useState("همه");
   const [status, setStatus] = useState("همه");
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(["فناوری اطلاعات", "ساختمان و املاک", "امور اجرایی", "پشتیبانی", "مدیریت ریسک"]));
+
+  useEffect(() => {
+    let active = true;
+    api<Array<{ id: number; name: string; type: string; ownerUnit: string; managerName: string; startDate: string; endDate: string; status: string }>>("/projects")
+      .then((items) => {
+        if (!active) return;
+        setRecords(items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          kind: (["آبشاری", "چابک", "اقدام"].includes(item.type) ? item.type : "آبشاری") as ProjectKind,
+          owner: item.ownerUnit,
+          manager: item.managerName,
+          start: item.startDate,
+          end: item.endDate,
+          status: (["برنامه‌ریزی", "در حال انجام", "متوقف شده", "تکمیل شده"].includes(item.status) ? item.status : "برنامه‌ریزی") as ProjectStatus,
+          approved: true,
+        })));
+      })
+      .catch(() => { /* Login screen handles an expired session; keep the local preview available. */ });
+    return () => { active = false; };
+  }, []);
 
   const filtered = useMemo(() => records.filter((project) =>
     project.name.includes(search) &&

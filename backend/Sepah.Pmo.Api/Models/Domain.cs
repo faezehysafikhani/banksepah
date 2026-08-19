@@ -24,6 +24,21 @@ public class Project
     public string Description { get; set; } = string.Empty;
     public List<ProjectRole> Roles { get; set; } = [];
     public List<CharterApproval> CharterApprovals { get; set; } = [];
+    public List<ProjectUserAccess> UserAccess { get; set; } = [];
+}
+
+public class ProjectUserAccess
+{
+    public int Id { get; set; }
+    public int ProjectId { get; set; }
+    public Project? Project { get; set; }
+    public int UserId { get; set; }
+    public AppUser? User { get; set; }
+    public bool CanView { get; set; } = true;
+    public bool CanEdit { get; set; }
+    public bool CanManageTeam { get; set; }
+    public bool CanManageWbs { get; set; }
+    public bool CanApprove { get; set; }
 }
 
 public class ProjectRole

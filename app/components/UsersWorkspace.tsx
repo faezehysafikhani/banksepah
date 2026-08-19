@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { api } from "../lib/api";
 import {
   BellRing,
   Check,
@@ -28,6 +29,7 @@ import {
 type UserStatus = "فعال" | "غیرفعال" | "مسدود";
 type UserRecord = { id: number; username: string; fullName: string; email: string; mobile: string; role: string; unit: string; position: string; status: UserStatus; lastLogin: string; online: boolean };
 type UserTab = "اطلاعات کاربری" | "اطلاعات سازمانی" | "نقش‌ها و دسترسی‌ها" | "امنیت و ورود" | "اعلان‌ها" | "سوابق فعالیت";
+type ProjectAccess = { projectId: number; projectCode: string; projectName: string; canView: boolean; canEdit: boolean; canManageTeam: boolean; canManageWbs: boolean; canApprove: boolean };
 
 const initialUsers: UserRecord[] = [
   { id: 1, username: "admin", fullName: "مدیر سامانه", email: "admin@sepah.ir", mobile: "۰۹۱۲۱۲۳۴۵۶۷", role: "مدیر سیستم", unit: "دفتر مدیریت پروژه", position: "مدیر سامانه", status: "فعال", lastLogin: "امروز، ۱۶:۲۲", online: true },
@@ -67,6 +69,7 @@ export default function UsersWorkspace({ collapsed }: { collapsed: boolean }) {
   const [activeTab, setActiveTab] = useState<UserTab>("اطلاعات کاربری");
   const [draft, setDraft] = useState<Partial<UserRecord>>({});
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
+  const [projectAccess, setProjectAccess] = useState<ProjectAccess[]>([]);
   const [toast, setToast] = useState("");
   const [deleteUser, setDeleteUser] = useState<UserRecord | null>(null);
 
@@ -80,15 +83,31 @@ export default function UsersWorkspace({ collapsed }: { collapsed: boolean }) {
     setPermissions(new Set(user?.role === "مدیر سیستم" ? allPermissions : user?.role === "مدیر پروژه" ? allPermissions.filter((item) => !item.includes("حذف کاربر") && !item.includes("تنظیمات") && !item.includes("مدیریت نقش")) : allPermissions.filter((_, index) => index % 3 === 0)));
     setActiveTab("اطلاعات کاربری");
     setModalUser(user ?? "new");
+    setProjectAccess([]);
+    if (user) api<ProjectAccess[]>(`/users/${user.id}/project-access`)
+      .then((rows) => setProjectAccess(user.role === "مدیر سیستم" ? rows.map((row) => ({ ...row, canView:true, canEdit:true, canManageTeam:true, canManageWbs:true, canApprove:true })) : rows))
+      .catch(() => notify("دسترسی پروژه‌های کاربر دریافت نشد."));
   }
-  function saveUser() {
+  async function saveUser() {
     if (!draft.fullName?.trim() || !draft.username?.trim()) return notify("نام و نام کاربری الزامی است.");
-    if (modalUser === "new") setUsers((current) => [{ ...draft, id: Date.now(), lastLogin: "هنوز وارد نشده", online: false } as UserRecord, ...current]);
-    else if (modalUser) setUsers((current) => current.map((user) => user.id === modalUser.id ? { ...user, ...draft } as UserRecord : user));
+    try {
+      if (modalUser === "new") setUsers((current) => [{ ...draft, id: Date.now(), lastLogin: "هنوز وارد نشده", online: false } as UserRecord, ...current]);
+      else if (modalUser) {
+        await api<void>(`/users/${modalUser.id}/project-access`, { method:"PUT", body:JSON.stringify(projectAccess) });
+        setUsers((current) => current.map((user) => user.id === modalUser.id ? { ...user, ...draft } as UserRecord : user));
+      }
+    } catch (error) { return notify(error instanceof Error ? error.message : "ذخیره دسترسی انجام نشد."); }
     setModalUser(null);
     notify("اطلاعات و دسترسی‌های کاربر ذخیره شد.");
   }
   function togglePermission(permission: string) { setPermissions((current) => { const next = new Set(current); if (next.has(permission)) next.delete(permission); else next.add(permission); return next; }); }
+  function setProjectPermission(projectId: number, key: keyof Pick<ProjectAccess, "canView" | "canEdit" | "canManageTeam" | "canManageWbs" | "canApprove">, checked: boolean) {
+    setProjectAccess((rows) => rows.map((row) => {
+      if (row.projectId !== projectId) return row;
+      if (key === "canView" && !checked) return { ...row, canView:false, canEdit:false, canManageTeam:false, canManageWbs:false, canApprove:false };
+      return { ...row, [key]:checked, canView:key === "canView" ? checked : checked ? true : row.canView };
+    }));
+  }
 
   const tabs: { label: UserTab; icon: typeof UserRound }[] = [
     { label: "اطلاعات کاربری", icon: UserRound },
@@ -99,12 +118,23 @@ export default function UsersWorkspace({ collapsed }: { collapsed: boolean }) {
     { label: "سوابق فعالیت", icon: Clock3 },
   ];
 
+  function projectAccessMatrix() {
+    return <section className="project-access-matrix">
+      <header><div><strong>دسترسی پروژه‌ای</strong><span>کاربر فقط پروژه‌های دارای مجوز «مشاهده» را در سبد می‌بیند.</span></div><ShieldCheck size={22} /></header>
+      <div className="project-access-head"><span>پروژه</span><span>مشاهده</span><span>ویرایش</span><span>تیم</span><span>WBS</span><span>تأیید</span></div>
+      {projectAccess.length === 0 ? <p className="project-access-empty">در حال دریافت فهرست پروژه‌ها…</p> : projectAccess.map((row) => <div className="project-access-row" key={row.projectId}>
+        <div><strong>{row.projectName}</strong><small>{row.projectCode}</small></div>
+        {(["canView", "canEdit", "canManageTeam", "canManageWbs", "canApprove"] as const).map((key) => <label key={key}><span className="sr-only">{key}</span><input type="checkbox" checked={row[key]} onChange={(event) => setProjectPermission(row.projectId, key, event.target.checked)} /></label>)}
+      </div>)}
+    </section>;
+  }
+
   function userModal() {
     if (!modalUser) return null;
     return <Modal title={modalUser === "new" ? "ایجاد کاربر جدید" : `ویرایش ${modalUser.fullName}`} subtitle="مدیریت حساب، سازمان و سطح دسترسی" onClose={() => setModalUser(null)} footer={<><button className="secondary" onClick={() => setModalUser(null)}>انصراف</button><button className="primary" onClick={saveUser}><Save size={16} /> ذخیره اطلاعات</button></>}><nav className="user-modal-tabs">{tabs.map((item) => { const Icon = item.icon; return <button type="button" key={item.label} className={activeTab === item.label ? "active" : ""} onClick={() => setActiveTab(item.label)}><Icon size={16} />{item.label}</button>; })}</nav><div className="ops-modal-body user-tab-body">
       {activeTab === "اطلاعات کاربری" && <div className="user-profile-form"><aside><div className="user-avatar-large"><UserRound size={36} /></div><button>انتخاب تصویر</button><small>JPG یا PNG تا ۲ مگابایت</small></aside><div className="ops-form-grid"><label><span>نام و نام خانوادگی *</span><input value={draft.fullName ?? ""} onChange={(event) => setDraft((value) => ({ ...value, fullName: event.target.value }))} /></label><label><span>نام کاربری *</span><input dir="ltr" value={draft.username ?? ""} onChange={(event) => setDraft((value) => ({ ...value, username: event.target.value }))} /></label><label><span>ایمیل سازمانی</span><input dir="ltr" value={draft.email ?? ""} onChange={(event) => setDraft((value) => ({ ...value, email: event.target.value }))} /></label><label><span>شماره همراه</span><input value={draft.mobile ?? ""} onChange={(event) => setDraft((value) => ({ ...value, mobile: event.target.value }))} /></label><label><span>وضعیت حساب</span><select value={draft.status} onChange={(event) => setDraft((value) => ({ ...value, status: event.target.value as UserStatus }))}><option>فعال</option><option>غیرفعال</option><option>مسدود</option></select></label><label><span>زبان رابط</span><select><option>فارسی</option><option>English</option></select></label><label className="wide"><span>توضیحات</span><textarea rows={4} placeholder="یادداشت مدیر سیستم درباره حساب کاربری" /></label></div></div>}
       {activeTab === "اطلاعات سازمانی" && <div className="ops-form-grid organization-form"><label><span>واحد سازمانی</span><select value={draft.unit} onChange={(event) => setDraft((value) => ({ ...value, unit: event.target.value }))}><option>دفتر مدیریت پروژه</option><option>فناوری اطلاعات</option><option>بانکداری دیجیتال</option><option>برنامه‌ریزی</option><option>مدیریت ریسک</option><option>امور اجرایی</option></select></label><label><span>سمت سازمانی</span><input value={draft.position ?? ""} onChange={(event) => setDraft((value) => ({ ...value, position: event.target.value }))} /></label><label><span>مدیر مستقیم</span><select><option>مدیر سامانه</option><option>علی رضایی</option><option>مریم احمدی</option></select></label><label><span>محل خدمت</span><select><option>ساختمان مرکزی</option><option>اداره فناوری اطلاعات</option><option>مدیریت شعب</option></select></label><label><span>کد پرسنلی</span><input dir="ltr" defaultValue="PM-1405-021" /></label><label><span>نوع همکاری</span><select><option>رسمی</option><option>قراردادی</option><option>مشاور</option></select></label><div className="wide user-project-field"><span>پروژه‌های تحت مسئولیت</span><div className="user-project-tags"><span>سامانه مدیریت پروژه <X size={13} /></span><span>نوسازی مرکز داده <X size={13} /></span><button><Plus size={14} /> افزودن پروژه</button></div></div></div>}
-      {activeTab === "نقش‌ها و دسترسی‌ها" && <div className="permissions-tab"><header><div><strong>نقش و الگوی دسترسی</strong><span>{permissions.size} دسترسی از {allPermissions.length} مورد فعال است.</span></div><select value={draft.role} onChange={(event) => { const role = event.target.value; setDraft((value) => ({ ...value, role })); if (role === "مدیر سیستم") setPermissions(new Set(allPermissions)); }}><option>مدیر سیستم</option><option>مدیر پروژه</option><option>کارشناس پروژه</option><option>مدیر ریسک</option><option>ناظر</option><option>مشاهده‌گر</option></select><button onClick={() => setPermissions(new Set(allPermissions))}>انتخاب همه</button><button onClick={() => setPermissions(new Set())}>حذف همه</button></header><div className="permission-groups">{permissionGroups.map((group) => { const groupSelected = group.items.every((item) => permissions.has(item)); return <section key={group.title}><header><label><input type="checkbox" checked={groupSelected} onChange={() => setPermissions((current) => { const next = new Set(current); group.items.forEach((item) => groupSelected ? next.delete(item) : next.add(item)); return next; })} /><strong>{group.title}</strong></label><span>{group.items.filter((item) => permissions.has(item)).length} از {group.items.length}</span></header><div>{group.items.map((permission) => <label key={permission}><span>{permission}</span><input type="checkbox" checked={permissions.has(permission)} onChange={() => togglePermission(permission)} /><i /></label>)}</div></section>; })}</div></div>}
+      {activeTab === "نقش‌ها و دسترسی‌ها" && <div className="permissions-tab"><header><div><strong>نقش و الگوی دسترسی</strong><span>{permissions.size} دسترسی از {allPermissions.length} مورد فعال است.</span></div><select value={draft.role} onChange={(event) => { const role = event.target.value; setDraft((value) => ({ ...value, role })); if (role === "مدیر سیستم") setPermissions(new Set(allPermissions)); }}><option>مدیر سیستم</option><option>مدیر پروژه</option><option>کارشناس پروژه</option><option>مدیر ریسک</option><option>ناظر</option><option>مشاهده‌گر</option></select><button onClick={() => setPermissions(new Set(allPermissions))}>انتخاب همه</button><button onClick={() => setPermissions(new Set())}>حذف همه</button></header>{projectAccessMatrix()}<div className="permission-groups">{permissionGroups.map((group) => { const groupSelected = group.items.every((item) => permissions.has(item)); return <section key={group.title}><header><label><input type="checkbox" checked={groupSelected} onChange={() => setPermissions((current) => { const next = new Set(current); group.items.forEach((item) => groupSelected ? next.delete(item) : next.add(item)); return next; })} /><strong>{group.title}</strong></label><span>{group.items.filter((item) => permissions.has(item)).length} از {group.items.length}</span></header><div>{group.items.map((permission) => <label key={permission}><span>{permission}</span><input type="checkbox" checked={permissions.has(permission)} onChange={() => togglePermission(permission)} /><i /></label>)}</div></section>; })}</div></div>}
       {activeTab === "امنیت و ورود" && <div className="security-tab"><div className="security-cards"><article><span><KeyRound size={21} /></span><div><strong>بازنشانی رمز عبور</strong><p>ارسال لینک تعیین رمز جدید به کاربر</p></div><button onClick={() => notify("لینک بازنشانی رمز آماده شد.")}>ارسال لینک</button></article><article><span><Lock size={21} /></span><div><strong>ورود دومرحله‌ای</strong><p>افزایش امنیت حساب با کد یک‌بارمصرف</p></div><label><span className="sr-only">فعال‌سازی ورود دومرحله‌ای</span><input type="checkbox" defaultChecked /><i /></label></article><article><span><UserX size={21} /></span><div><strong>مسدودسازی ورود</strong><p>قطع دسترسی فوری کاربر به سامانه</p></div><label><span className="sr-only">مسدودسازی ورود کاربر</span><input type="checkbox" checked={draft.status === "مسدود"} onChange={(event) => setDraft((value) => ({ ...value, status: event.target.checked ? "مسدود" : "فعال" }))} /><i /></label></article></div><div className="login-policy"><strong>سیاست ورود</strong><label><span>انقضای رمز عبور</span><select><option>۹۰ روز</option><option>۶۰ روز</option><option>بدون انقضا</option></select></label><label><span>حداکثر نشست همزمان</span><select><option>۱ نشست</option><option>۲ نشست</option><option>نامحدود</option></select></label><label><span>محدوده IP مجاز</span><input dir="ltr" placeholder="برای نمونه 10.10.0.0/16" /></label></div></div>}
       {activeTab === "اعلان‌ها" && <div className="notifications-tab"><header><BellRing size={30} /><div><strong>تنظیمات اعلان کاربر</strong><p>رویدادها و کانال‌های اطلاع‌رسانی موردنیاز را تعیین کنید.</p></div></header>{["ارجاع وظیفه یا اقدام جدید", "درخواست تأیید جدید", "نزدیک‌شدن موعد پروژه", "ثبت ریسک بحرانی", "تغییر وضعیت پروژه", "رویدادها و جلسات تقویم"].map((item, index) => <article key={item}><strong>{item}</strong><label><input type="checkbox" defaultChecked /><i />اعلان سامانه</label><label><input type="checkbox" defaultChecked={index < 3} /><i />ایمیل</label><label><input type="checkbox" defaultChecked={index === 0 || index === 2} /><i />پیامک</label></article>)}</div>}
       {activeTab === "سوابق فعالیت" && <div className="user-audit"><header><div><strong>آخرین فعالیت‌های کاربر</strong><span>سوابق امنیتی و عملیاتی حساب</span></div><button><Filter size={15} /> فیلتر</button></header>{[["ورود موفق به سامانه", "امروز، ۱۴:۰۸", "192.168.10.24", "ورود"], ["ویرایش منشور پروژه", "دیروز، ۱۱:۳۵", "سامانه مدیریت پروژه", "پروژه"], ["تأیید گزارش پیشرفت", "۱۴۰۵/۰۵/۲۶", "گزارش مردادماه", "تأیید"], ["دریافت خروجی Excel", "۱۴۰۵/۰۵/۲۴", "عملکرد سبد", "گزارش"]].map((item) => <article key={item[0]}><span><CheckCheck size={17} /></span><div><strong>{item[0]}</strong><small>{item[2]}</small></div><em>{item[3]}</em><time>{item[1]}</time></article>)}</div>}

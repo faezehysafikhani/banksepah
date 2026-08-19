@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 {
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectRole> ProjectRoles => Set<ProjectRole>();
+    public DbSet<ProjectUserAccess> ProjectUserAccess => Set<ProjectUserAccess>();
     public DbSet<CharterApproval> CharterApprovals => Set<CharterApproval>();
     public DbSet<WorkTask> WorkTasks => Set<WorkTask>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
@@ -23,6 +24,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         base.OnModelCreating(builder);
         builder.Entity<Project>().HasIndex(x => x.Code).IsUnique();
         builder.Entity<Project>().Property(x => x.Budget).HasPrecision(18, 0);
+        builder.Entity<ProjectUserAccess>().HasIndex(x => new { x.ProjectId, x.UserId }).IsUnique();
+        builder.Entity<ProjectUserAccess>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<EventTaskLink>().HasIndex(x => new { x.CalendarEventId, x.WorkTaskId }).IsUnique();
         builder.Entity<EventTaskLink>().HasOne(x => x.WorkTask).WithMany().HasForeignKey(x => x.WorkTaskId).OnDelete(DeleteBehavior.Restrict);
     }

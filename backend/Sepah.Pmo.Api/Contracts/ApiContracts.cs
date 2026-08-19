@@ -11,3 +11,4 @@ public record EventRequest(string Title, string EventType, string Organizer, int
 public record EventResponse(int Id, string Title, string EventType, string Organizer, int PersianYear, int PersianMonth, int PersianDay, string StartTime, string EndTime, string Location, string Description, string Minutes, List<ParticipantDto> Participants, List<AgendaDto> AgendaItems, List<ActionDto> Actions, List<ReminderDto> Reminders, List<TaskLinkDto> TaskLinks);
 public record ProjectRoleDto(int Id, string RoleType, string FullName, string Position, string PersonnelNumber, string Phone, string Email, string ServiceLocation);
 public record ApprovalDto(int Id, int Order, string RoleTitle, string ApproverName, string Department, string Status, string? DecisionDate, string? Comment);
+public record ProjectAccessDto(int ProjectId, string ProjectCode, string ProjectName, bool CanView, bool CanEdit, bool CanManageTeam, bool CanManageWbs, bool CanApprove);

@@ -11,6 +11,7 @@ public static class SeedData
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.EnsureCreatedAsync();
+        await EnsureProjectAccessSchemaAsync(db);
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
         foreach (var role in new[] { "Administrator", "ProjectManager", "User" })
             if (!await roleManager.RoleExistsAsync(role)) await roleManager.CreateAsync(new IdentityRole<int>(role));
@@ -23,7 +24,14 @@ public static class SeedData
             if (!created.Succeeded) throw new InvalidOperationException(string.Join("؛ ", created.Errors.Select(x => x.Description)));
             await userManager.AddToRoleAsync(admin, "Administrator");
         }
-        if (await db.Projects.AnyAsync()) return;
+        var ali = await EnsureUserAsync(userManager, "a.rezaei", "علی رضایی", "مدیر پروژه ارشد", "فناوری اطلاعات", "ProjectManager");
+        var maryam = await EnsureUserAsync(userManager, "m.ahmadi", "مریم احمدی", "مدیر محصول", "بانکداری دیجیتال", "ProjectManager");
+        var sara = await EnsureUserAsync(userManager, "s.mohammadi", "سارا محمدی", "کارشناس کنترل پروژه", "برنامه‌ریزی", "User");
+        await EnsureUserAsync(userManager, "r.karimi", "رضا کریمی", "ناظر پروژه", "امور اجرایی", "User");
+        await EnsureUserAsync(userManager, "n.hosseini", "نرگس حسینی", "رئیس اداره ریسک", "مدیریت ریسک", "User");
+
+        if (!await db.Projects.AnyAsync())
+        {
 
         var project = new Project { Code="PRJ-101", Name="توسعه سامانه مدیریت پروژه‌های بانک", Type="آبشاری", OwnerUnit="فناوری اطلاعات", ManagerName="مدیر سامانه", Status="در حال انجام", StartDate="۱۴۰۵/۰۱/۱۵", EndDate="۱۴۰۵/۱۲/۲۰", Budget=12500000000, Description="یکپارچه‌سازی برنامه‌ریزی، پایش و گزارش‌دهی پروژه‌های بانک" };
         db.Projects.AddRange(project,
@@ -54,5 +62,54 @@ public static class SeedData
         sample.Reminders.Add(new EventReminder { Offset="یک روز قبل", Channel="اعلان سامانه", Enabled=true });
         db.CalendarEvents.Add(sample);
         await db.SaveChangesAsync();
+        }
+
+        if (!await db.ProjectUserAccess.AnyAsync())
+        {
+            var projects = await db.Projects.OrderBy(x => x.Id).ToListAsync();
+            if (projects.Count > 0)
+            {
+                db.ProjectUserAccess.Add(new ProjectUserAccess { ProjectId=projects[0].Id, UserId=ali.Id, CanView=true, CanEdit=true, CanManageTeam=true, CanManageWbs=true, CanApprove=true });
+                db.ProjectUserAccess.Add(new ProjectUserAccess { ProjectId=projects[0].Id, UserId=sara.Id, CanView=true });
+            }
+            if (projects.Count > 1)
+                db.ProjectUserAccess.Add(new ProjectUserAccess { ProjectId=projects[1].Id, UserId=ali.Id, CanView=true, CanEdit=true, CanManageTeam=true, CanManageWbs=true });
+            if (projects.Count > 2)
+                db.ProjectUserAccess.Add(new ProjectUserAccess { ProjectId=projects[2].Id, UserId=maryam.Id, CanView=true, CanEdit=true, CanManageTeam=true, CanManageWbs=true, CanApprove=true });
+            await db.SaveChangesAsync();
+        }
     }
+
+    private static async Task<AppUser> EnsureUserAsync(UserManager<AppUser> manager, string username, string displayName, string jobTitle, string department, string role)
+    {
+        var user = await manager.FindByNameAsync(username);
+        if (user is null)
+        {
+            user = new AppUser { UserName=username, Email=$"{username}@sepah.ir", DisplayName=displayName, JobTitle=jobTitle, Department=department };
+            var result = await manager.CreateAsync(user, "User@123");
+            if (!result.Succeeded) throw new InvalidOperationException(string.Join("؛ ", result.Errors.Select(x => x.Description)));
+        }
+        if (!await manager.IsInRoleAsync(user, role)) await manager.AddToRoleAsync(user, role);
+        return user;
+    }
+
+    private static Task EnsureProjectAccessSchemaAsync(AppDbContext db) => db.Database.ExecuteSqlRawAsync("""
+        IF OBJECT_ID(N'[ProjectUserAccess]', N'U') IS NULL
+        BEGIN
+            CREATE TABLE [ProjectUserAccess] (
+                [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_ProjectUserAccess] PRIMARY KEY,
+                [ProjectId] int NOT NULL,
+                [UserId] int NOT NULL,
+                [CanView] bit NOT NULL CONSTRAINT [DF_ProjectUserAccess_CanView] DEFAULT CAST(1 AS bit),
+                [CanEdit] bit NOT NULL CONSTRAINT [DF_ProjectUserAccess_CanEdit] DEFAULT CAST(0 AS bit),
+                [CanManageTeam] bit NOT NULL CONSTRAINT [DF_ProjectUserAccess_CanManageTeam] DEFAULT CAST(0 AS bit),
+                [CanManageWbs] bit NOT NULL CONSTRAINT [DF_ProjectUserAccess_CanManageWbs] DEFAULT CAST(0 AS bit),
+                [CanApprove] bit NOT NULL CONSTRAINT [DF_ProjectUserAccess_CanApprove] DEFAULT CAST(0 AS bit),
+                CONSTRAINT [FK_ProjectUserAccess_Projects_ProjectId] FOREIGN KEY ([ProjectId]) REFERENCES [Projects] ([Id]) ON DELETE CASCADE,
+                CONSTRAINT [FK_ProjectUserAccess_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX [IX_ProjectUserAccess_ProjectId_UserId] ON [ProjectUserAccess] ([ProjectId], [UserId]);
+            CREATE INDEX [IX_ProjectUserAccess_UserId] ON [ProjectUserAccess] ([UserId]);
+        END
+        """);
 }
