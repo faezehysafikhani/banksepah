@@ -35,6 +35,10 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(projects, /ایجاد پروژه چابک/);
   assert.match(projects, /گروه‌بندی سطح ۱/);
   assert.match(projects, /اسپرینت/);
+  assert.match(projects, /دستاوردها و منافع/);
+  assert.match(projects, /شاخص‌های KPI/);
+  assert.match(projects, /OutcomesDashboard/);
+  assert.match(projects, /KpiDashboard/);
   assert.match(projects, /برنامه زمان‌بندی پروژه/);
   assert.match(projects, /function ProjectEditor/);
   assert.match(projects, /function ProjectDashboard/);
@@ -90,6 +94,8 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(calendar, /TimeSelect/);
   assert.match(persianInputs, /تقویم رسمی شمسی/);
   assert.match(persianInputs, /دقیقه/);
+  assert.match(persianInputs, /sepah-popover-open/);
+  assert.match(persianInputs, /closeOutside/);
   assert.match(calendar, /setEventOpen\(true\)/);
   assert.doesNotMatch(calendar, /onDoubleClick/);
   assert.match(calendar, /تقویم شمسی مدیریتی/);
@@ -107,6 +113,9 @@ test("ships the Sepah project-management experience", async () => {
   assert.doesNotMatch(calendar, /type="date"/);
   assert.match(users, /دسترسی پروژه‌ای/);
   assert.match(usersApi, /ProjectUserAccess/);
+  assert.match(css, /status-chart-card \.donut-chart/);
+  assert.match(css, /project-value-dashboard/);
+  assert.match(css, /ops-header-actions > label > input/);
   assert.ok(page.indexOf("<DashboardCalendar />") < page.indexOf("status-chart-card"));
   assert.ok(page.indexOf("dashboard-owner-row") > page.indexOf("dashboard-primary-charts"));
   assert.match(projects, /ProjectWorkspaceModal/);

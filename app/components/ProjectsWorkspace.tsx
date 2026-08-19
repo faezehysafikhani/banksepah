@@ -7,6 +7,7 @@ import { api } from "../lib/api";
 import { PersianDateInput } from "./PersianInputs";
 import {
   Activity,
+  Award,
   CalendarRange,
   CheckCircle2,
   ChevronDown,
@@ -19,6 +20,7 @@ import {
   FolderKanban,
   FolderPlus,
   GitBranch,
+  Gauge,
   History,
   LayoutDashboard,
   Layers3,
@@ -126,6 +128,8 @@ function ProjectWorkspaceModal({ title, onClose, children }: { title: string; on
 
 const waterfallTabs = [
   ["charter", "منشور پروژه", FileText],
+  ["outcomes", "دستاوردها و منافع", Award],
+  ["kpis", "شاخص‌های KPI", Gauge],
   ["approvals", "تأییدات منشور", CheckCircle2],
   ["schedule", "برنامه زمان‌بندی پروژه", CalendarRange],
   ["team", "ارکان و تیم پروژه", Users],
@@ -138,7 +142,7 @@ const waterfallTabs = [
 ] as const;
 
 const agileTabs = [
-  ...waterfallTabs.slice(0, 9),
+  ...waterfallTabs.slice(0, -1),
   ["sprints", "اسپرینت", RefreshCcw],
 ] as const;
 
@@ -231,7 +235,7 @@ function ProjectRolesPanel({ projectId }: { projectId?: number }) {
     setRows((current) => current.map((item, i) => i === index ? saved : item)); setNotice("رکن پروژه در SQL Server ثبت شد.");
   }
   async function remove(row: RoleRow, index: number) { if (projectId && row.id) await api<void>(`/projects/${projectId}/roles/${row.id}`, { method: "DELETE" }); setRows((current) => current.filter((_, i) => i !== index)); }
-  const renderRows = (items: [RoleRow, number][]) => items.map(([row, index]) => <article key={`${row.id}-${index}`}><select value={row.roleType} onChange={(event) => setRows((current) => current.map((item, i) => i === index ? { ...item, roleType: event.target.value } : item))}>{["حامی طرح / مدیر برنامه", "مدیر پروژه", "ناظر پروژه", "عضو تیم"].map((role) => <option key={role}>{role}</option>)}</select>{(["fullName","position","personnelNumber","phone","email","serviceLocation"] as const).map((key) => <input key={key} value={row[key]} onChange={(event) => setRows((current) => current.map((item, i) => i === index ? { ...item, [key]: event.target.value } : item))} placeholder={({ fullName:"نام و نام خانوادگی",position:"سمت فعلی",personnelNumber:"شماره پرسنلی",phone:"تلفن",email:"ایمیل سازمانی",serviceLocation:"محل خدمت" } as const)[key]} />)}<div><button type="button" onClick={() => save(row,index)}><Save size={14} /></button><button type="button" onClick={() => remove(row,index)}><Trash2 size={14} /></button></div></article>);
+  const renderRows = (items: [RoleRow, number][]) => items.map(([row, index]) => <article key={`${row.id}-${index}`}><select title={row.roleType} value={row.roleType} onChange={(event) => setRows((current) => current.map((item, i) => i === index ? { ...item, roleType: event.target.value } : item))}>{["حامی طرح / مدیر برنامه", "مدیر پروژه", "ناظر پروژه", "عضو تیم"].map((role) => <option key={role}>{role}</option>)}</select>{(["fullName","position","personnelNumber","phone","email","serviceLocation"] as const).map((key) => <input key={key} title={row[key]} value={row[key]} onChange={(event) => setRows((current) => current.map((item, i) => i === index ? { ...item, [key]: event.target.value } : item))} placeholder={({ fullName:"نام و نام خانوادگی",position:"سمت فعلی",personnelNumber:"شماره پرسنلی",phone:"تلفن",email:"ایمیل سازمانی",serviceLocation:"محل خدمت" } as const)[key]} />)}<div><button type="button" onClick={() => save(row,index)}><Save size={14} /></button><button type="button" onClick={() => remove(row,index)}><Trash2 size={14} /></button></div></article>);
   const indexed = rows.map((row,index) => [row,index] as [RoleRow,number]);
   return <div className="project-roles-panel"><header><div><strong>ارکان اصلی پروژه</strong><small>حامی، مدیر و ناظر پروژه مطابق فرم بانک سپه</small></div><button type="button" onClick={() => addRow("حامی طرح / مدیر برنامه")}><PlusIcon /> افزودن رکن</button></header><div className="roles-table"><div className="roles-head"><span>نقش</span><span>نام</span><span>سمت</span><span>پرسنلی</span><span>تلفن</span><span>ایمیل</span><span>محل خدمت</span><span>عملیات</span></div>{renderRows(indexed.filter(([row]) => row.roleType !== "عضو تیم"))}</div><header className="team-heading"><div><strong>اعضای تیم پروژه</strong><small>مشخصات اعضای اجرایی و تخصصی</small></div><button type="button" onClick={() => addRow()}><PlusIcon /> افزودن عضو</button></header><div className="roles-table">{renderRows(indexed.filter(([row]) => row.roleType === "عضو تیم"))}</div>{notice && <div className="form-notice"><CheckCircle2 size={16} />{notice}</div>}</div>;
 }
@@ -239,6 +243,28 @@ function PlusIcon() { return <span aria-hidden="true">＋</span>; }
 
 function TabFields({ tab, agile, projectId }: { tab: string; agile: boolean; projectId?: number }) {
   if (tab === "charter") return <CharterFields agile={agile} />;
+  if (tab === "outcomes") return <div className="project-form-grid outcome-form-grid">
+    <Field label="عنوان دستاورد / منفعت" required placeholder="نتیجه قابل اندازه‌گیری حاصل از اجرای پروژه" />
+    <Field label="نوع دستاورد" type="select" options={["کمی", "کیفی", "مالی", "عملیاتی", "راهبردی"]} />
+    <Field label="مالک منفعت" type="select" options={["حامی پروژه", "مدیر پروژه", "واحد مالک", "معاونت برنامه‌ریزی"]} />
+    <Field label="ذی‌نفع اصلی" placeholder="واحد یا گروه بهره‌بردار" />
+    <Field label="تاریخ هدف تحقق" type="date" />
+    <Field label="وضعیت تحقق" type="select" options={["برنامه‌ریزی", "در مسیر تحقق", "محقق‌شده", "نیازمند اقدام اصلاحی"]} />
+    <Field label="شرح ارزش مورد انتظار" type="textarea" placeholder="این دستاورد چه ارزش ملموسی برای بانک ایجاد می‌کند؟" />
+    <Field label="معیار پذیرش و شواهد تحقق" type="textarea" placeholder="معیار قابل سنجش، سند یا خروجی موردنیاز برای تأیید دستاورد" />
+  </div>;
+  if (tab === "kpis") return <div className="project-form-grid kpi-form-grid">
+    <Field label="دستاورد مرتبط" type="select" options={["یکپارچه‌شدن پایش پروژه‌ها", "کاهش انحراف زمان‌بندی", "افزایش شفافیت تصمیم‌گیری"]} />
+    <Field label="نوع شاخص" type="select" options={["اثربخشی (Lag)", "کارایی (Lead)"]} />
+    <Field label="عنوان شاخص" required placeholder="عنوان دقیق و قابل سنجش KPI" />
+    <Field label="واحد اندازه‌گیری" type="select" options={["درصد", "روز", "ریال", "تعداد", "امتیاز"]} />
+    <Field label="هدف شاخص" type="number" placeholder="مقدار هدف" />
+    <Field label="مقدار واقعی" type="number" placeholder="آخرین مقدار ثبت‌شده" />
+    <Field label="تناوب پایش" type="select" options={["هفتگی", "ماهانه", "فصلی", "در نقاط عطف"]} />
+    <Field label="مسئول اندازه‌گیری" type="select" options={["مدیر پروژه", "دفتر مدیریت پروژه", "واحد مالک", "کنترل پروژه"]} />
+    <Field label="فرمول محاسبه" type="textarea" placeholder="صورت، مخرج، ضرایب و قواعد محاسبه شاخص" />
+    <Field label="منبع داده و توضیحات" type="textarea" placeholder="سامانه یا سند مرجع و ملاحظات ثبت مقدار" />
+  </div>;
   if (tab === "approvals") return <CharterApprovalsPanel projectId={projectId} />;
   if (tab === "schedule") return (
     <div className="project-form-grid">
@@ -429,12 +455,35 @@ function ProjectEditor({ project, onUpdate }: { project: ProjectItem; onUpdate: 
 
 const dashboardTabs = [
   ["charter", "خلاصه منشور پروژه", FileText],
+  ["outcomes", "دستاوردها و منافع", Award],
+  ["kpis", "شاخص‌های KPI", Gauge],
   ["approvals", "تأییدات منشور", CheckCircle2],
   ["activities", "فعالیت‌های سطح بالا", Layers3],
   ["team", "ارکان و تیم پروژه", Users],
   ["risks", "ریسک‌های پروژه", ShieldAlert],
   ["actions", "اقدامات مرتبط", ListChecks],
 ] as const;
+
+const projectOutcomes = [
+  { title:"یکپارچه‌شدن برنامه‌ریزی و پایش پروژه‌ها", owner:"دفتر مدیریت پروژه", evidence:"داشبورد واحد و گزارش مدیریتی مصوب", progress:86, state:"در مسیر تحقق", tone:"cyan" },
+  { title:"کاهش انحراف زمان‌بندی پروژه‌های اولویت‌دار", owner:"کنترل پروژه", evidence:"کاهش حداقل ۲۰٪ انحراف نسبت به خط مبنا", progress:72, state:"نیازمند پایش", tone:"orange" },
+  { title:"افزایش شفافیت تصمیم‌گیری مدیران", owner:"معاونت برنامه‌ریزی", evidence:"دسترسی برخط به KPI و مصوبات پروژه", progress:91, state:"در مسیر تحقق", tone:"green" },
+];
+
+const projectKpis = [
+  { title:"درصد پروژه‌های دارای WBS مصوب", outcome:"یکپارچه‌شدن برنامه‌ریزی و پایش", kind:"Lag", target:95, actual:88, formula:"پروژه‌های دارای WBS مصوب ÷ کل پروژه‌های فعال × ۱۰۰", owner:"دفتر مدیریت پروژه" },
+  { title:"درصد به‌روزرسانی به‌موقع پیشرفت", outcome:"کاهش انحراف زمان‌بندی", kind:"Lead", target:90, actual:76, formula:"گزارش‌های ثبت‌شده در موعد ÷ گزارش‌های مورد انتظار × ۱۰۰", owner:"کنترل پروژه" },
+  { title:"پوشش تصمیم‌های مبتنی بر داشبورد", outcome:"افزایش شفافیت تصمیم‌گیری", kind:"Lag", target:85, actual:81, formula:"مصوبات دارای استناد KPI ÷ کل مصوبات کمیته × ۱۰۰", owner:"معاونت برنامه‌ریزی" },
+  { title:"نرخ بسته‌شدن اقدامات اصلاحی", outcome:"کاهش انحراف زمان‌بندی", kind:"Lead", target:92, actual:84, formula:"اقدامات بسته‌شده در موعد ÷ کل اقدامات سررسیدشده × ۱۰۰", owner:"مدیر پروژه" },
+];
+
+function OutcomesDashboard() {
+  return <section className="project-value-dashboard"><header><div><small>مدیریت منافع پروژه</small><h2>دستاوردها و منافع قابل تحقق</h2><p>هر دستاورد به مالک منفعت، شاهد تحقق و KPIهای مرتبط متصل است.</p></div><span>{fa(projectOutcomes.length)} دستاورد</span></header><div className="outcome-card-grid">{projectOutcomes.map((item) => <article key={item.title} className={item.tone}><div className="outcome-icon"><Award size={23} /></div><div className="outcome-copy"><small>{item.owner}</small><h3>{item.title}</h3><p>{item.evidence}</p></div><div className="outcome-progress"><span><b>{fa(item.progress)}٪</b>{item.state}</span><div><i style={{width:`${item.progress}%`}} /></div></div></article>)}</div></section>;
+}
+
+function KpiDashboard() {
+  return <section className="project-value-dashboard"><header><div><small>پایش اثربخشی و کارایی</small><h2>شاخص‌های کلیدی عملکرد پروژه</h2><p>شاخص‌های Lag نتیجه را می‌سنجند و شاخص‌های Lead محرک‌های تحقق آن را کنترل می‌کنند.</p></div><span>{fa(projectKpis.length)} شاخص</span></header><div className="kpi-card-grid">{projectKpis.map((item) => { const score=Math.min(100,Math.round(item.actual/item.target*100)); return <article key={item.title}><header><span className={item.kind.toLowerCase()}>{item.kind}</span><small>{item.outcome}</small></header><h3>{item.title}</h3><div className="kpi-values"><div><small>مقدار واقعی</small><strong>{fa(item.actual)}٪</strong></div><div><small>هدف</small><strong>{fa(item.target)}٪</strong></div><div><small>تحقق</small><strong>{fa(score)}٪</strong></div></div><div className="kpi-track"><i style={{width:`${score}%`}} /></div><footer><span><Gauge size={14} />{item.formula}</span><b>{item.owner}</b></footer></article>; })}</div></section>;
+}
 
 function ProjectDashboard({ project }: { project: ProjectItem }) {
   const [activeTab, setActiveTab] = useState<(typeof dashboardTabs)[number][0]>("charter");
@@ -483,6 +532,8 @@ function ProjectDashboard({ project }: { project: ProjectItem }) {
           </div>
         </div>}
 
+        {activeTab === "outcomes" && <OutcomesDashboard />}
+        {activeTab === "kpis" && <KpiDashboard />}
         {activeTab === "approvals" && <CharterApprovalsPanel projectId={project.id} />}
         {activeTab === "activities" && <DashboardTable title="فعالیت‌های سطح بالا" columns={["ردیف", "نام فعالیت", "تاریخ شروع", "تاریخ پایان", "وزن", "پیشرفت برنامه‌ای", "پیشرفت واقعی"]} rows={activities} />}
         {activeTab === "team" && <ProjectRolesPanel projectId={project.id} />}
