@@ -98,6 +98,13 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(layout, /سامانه مدیریت پروژه‌های بانک سپه/);
   assert.match(css, /IRANSans-Medium\.ttf/);
   assert.match(css, /backdrop-filter:\s*blur/);
+  assert.match(css, /\.projects-workspace[\s\S]*?overflow-x:\s*hidden/);
+  assert.match(css, /\.dashboard-main[\s\S]*?overflow-x:\s*hidden/);
+  assert.match(css, /\.project-full-content[^}]*overflow-x:\s*hidden/);
+  assert.match(css, /\.creator-tabs[^}]*grid-template-columns:\s*repeat\(auto-fit/);
+  assert.match(css, /Responsive form geometry/);
+  assert.match(css, /\.ops-form-grid,[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.event-main-grid[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
   assert.match(hosting, /"d1": "DB"/);
   await access(new URL("public/images.jpg", root));
   await access(new URL("public/mob.banking.android.sepah_512x512.webp", root));

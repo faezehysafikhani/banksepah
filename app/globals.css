@@ -573,7 +573,8 @@ button {
   padding: clamp(20px, 2.5vw, 34px);
   position: relative;
   z-index: 2;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid rgba(255,255,255,.52);
   border-radius: 30px;
   color: #073246;
@@ -877,7 +878,8 @@ button {
   padding: clamp(18px, 2.2vw, 30px);
   position: relative;
   z-index: 2;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   direction: rtl;
   color: #082f42;
   border: 1px solid rgba(255,255,255,.58);
@@ -1078,8 +1080,8 @@ button {
 .creator-heading { margin-bottom: 16px; }
 .back-button { margin-bottom: 8px; font-size: 9px; }
 .creator-heading > span { padding: 9px 13px; font-size: 10px; font-weight: 700; }
-.creator-tabs { margin-bottom: 12px; padding: 8px; display: flex; gap: 6px; overflow-x: auto; border: 1px solid rgba(255,255,255,.7); border-radius: 16px; background: rgba(240,252,253,.43); scrollbar-width: thin; }
-.creator-tabs button { min-width: max-content; padding: 9px 11px; position: relative; display: flex; align-items: center; gap: 6px; color: #537581; border: 0; border-radius: 10px; background: transparent; cursor: pointer; font-size: 9px; }
+.creator-tabs { margin-bottom: 12px; padding: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,.7); border-radius: 16px; background: rgba(240,252,253,.43); }
+.creator-tabs button { min-width: 0; padding: 9px 8px; position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; color: #537581; border: 0; border-radius: 10px; background: transparent; cursor: pointer; font-size: 9px; white-space: nowrap; }
 .creator-tabs button.active { color: white; background: linear-gradient(135deg, #087ea2, #11acc6); box-shadow: 0 7px 16px rgba(0,111,146,.2); }
 .creator-tabs button i { width: 4px; height: 4px; border-radius: 50%; background: white; }
 .creator-form { padding: 17px; border-radius: 19px; }
@@ -1215,7 +1217,8 @@ button {
   width: min(680px, 100%);
   max-height: calc(100vh - 48px);
   padding: 20px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   color: #103f51;
   border: 1px solid rgba(255,255,255,.82);
   border-radius: 24px;
@@ -1445,7 +1448,7 @@ button {
 .ops-modal > header small { color: #0982a1; font-size: 8px; }
 .ops-modal > header h2 { margin: 4px 0 0; font-size: 17px; }
 .ops-modal > header button { width: 35px; height: 35px; display: grid; place-items: center; color: #527783; border: 1px solid rgba(0,102,132,.12); border-radius: 10px; background: rgba(255,255,255,.45); }
-.ops-modal-body { padding: 18px; overflow: auto; }
+.ops-modal-body { min-width: 0; padding: 18px; overflow-x: hidden; overflow-y: auto; }
 .ops-modal > footer { min-height: 68px; padding: 12px 18px; display: flex; align-items: center; justify-content: flex-end; gap: 7px; border-top: 1px solid rgba(0,91,118,.09); background: rgba(255,255,255,.3); }
 .ops-modal > footer button { min-height: 38px; padding: 8px 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; font: inherit; font-size: 8px; }
 .ops-modal > footer .secondary { color: #3f6b7a; border: 1px solid rgba(0,103,134,.13); background: rgba(255,255,255,.48); }
@@ -1555,9 +1558,107 @@ button {
 .project-full-modal { width: min(1480px, calc(100vw - 48px)); height: min(920px, calc(100vh - 48px)); position: relative; overflow: hidden; color: #0b3547; border: 1px solid rgba(255,255,255,.86); border-radius: 27px; background: linear-gradient(145deg, rgba(232,250,252,.97), rgba(164,222,233,.93)); box-shadow: 0 40px 110px rgba(0,24,42,.48), inset 0 1px white, 0 0 0 5px rgba(255,255,255,.11); }
 .project-full-close { width: 40px; height: 40px; position: absolute; z-index: 5; left: 17px; top: 17px; display: grid; place-items: center; color: #164f63; border: 1px solid rgba(255,255,255,.9); border-radius: 12px; background: rgba(255,255,255,.63); box-shadow: 0 10px 24px rgba(0,64,87,.14), inset 0 1px white; backdrop-filter: blur(18px); }
 .project-full-close:hover { color: white; background: linear-gradient(145deg, #087fa3, #17b9ce); }
-.project-full-content { height: 100%; padding: 20px; overflow: auto; scrollbar-width: thin; scrollbar-color: rgba(0,112,145,.35) transparent; }
+.project-full-content { height: 100%; min-width: 0; padding: 20px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(0,112,145,.35) transparent; }
 .project-full-content .project-creator, .project-full-content .project-editor, .project-full-content .project-dashboard-view { min-height: 100%; border: 0; background: transparent; box-shadow: none; }
 .project-full-content .creator-heading, .project-full-content .project-dashboard-heading { padding-left: 55px; }
+
+/* Keep every workspace inside its glass frame; wide tables scroll only inside their own wrapper. */
+.dashboard-main > *,
+.projects-workspace > *,
+.project-full-content > *,
+.project-creator,
+.project-editor,
+.project-dashboard-view,
+.operations-workspace,
+.ops-panel,
+.creator-form,
+.project-form-grid,
+.ops-form-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.project-table-wrap,
+.wbs-table-wrap,
+.dashboard-table-wrap,
+.ops-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
+}
+
+/* Responsive form geometry: fields shrink with their panel instead of widening it. */
+.menu-page :is(form, fieldset, input, select, textarea),
+.project-full-modal :is(form, fieldset, input, select, textarea),
+.ops-modal :is(form, fieldset, input, select, textarea),
+.project-action-modal :is(form, fieldset, input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.form-field,
+.ops-form-grid > *,
+.wbs-detail-grid > *,
+.event-main-grid > *,
+.user-profile-form > *,
+.report-designer-grid > *,
+.login-policy > *,
+.permissions-tab > *,
+.goal-detail-grid > * {
+  min-width: 0;
+}
+
+.ops-form-grid,
+.wbs-detail-grid,
+.goal-detail-grid,
+.login-policy,
+.report-designer-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.report-designer-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.event-main-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 290px);
+}
+
+.user-profile-form {
+  grid-template-columns: 165px minmax(0, 1fr);
+}
+
+.calendar-event-modal > nav,
+.user-modal-tabs {
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+}
+
+.calendar-event-modal > nav button,
+.user-modal-tabs button,
+.creator-tabs button {
+  min-width: 0;
+  line-height: 1.7;
+  white-space: normal;
+  text-align: center;
+}
+
+.ops-modal,
+.user-modal,
+.calendar-event-modal,
+.reports-modal,
+.strategy-modal,
+.project-action-modal,
+.wbs-detail-modal,
+.wbs-delete-modal {
+  max-width: calc(100vw - 32px);
+}
+
+.ops-modal-body,
+.project-full-content,
+.project-action-modal,
+.wbs-detail-modal {
+  overscroll-behavior: contain;
+}
 
 .report-stat-grid { margin-bottom: 11px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .report-stat-grid article { min-height: 108px; padding: 14px; display: flex; align-items: center; gap: 11px; border: 1px solid rgba(255,255,255,.82); border-radius: 18px; background: linear-gradient(145deg, rgba(255,255,255,.75), rgba(183,231,239,.48)); box-shadow: 0 14px 31px rgba(0,64,87,.13), inset 0 1px white; }
@@ -2020,13 +2121,29 @@ body { font-family: "IRANSans", Tahoma, sans-serif; font-size: 11px; }
   .report-library-head { align-items: flex-start; flex-direction: column; gap: 12px; }
   .project-full-backdrop { padding: 10px; }
   .project-full-modal { width: calc(100vw - 20px); height: calc(100vh - 20px); }
-  .event-main-grid, .user-profile-form { grid-template-columns: 1fr; }
+  .project-form-grid,
+  .ops-form-grid,
+  .wbs-detail-grid,
+  .goal-detail-grid,
+  .login-policy,
+  .report-designer-grid,
+  .event-main-grid,
+  .user-profile-form { grid-template-columns: minmax(0, 1fr); }
+  .form-field.wide, .ops-form-grid label.wide { grid-column: auto; }
   .permissions-tab > header { grid-template-columns: 1fr; }
   .notifications-tab > article { grid-template-columns: 1fr; }
-  .login-policy { grid-template-columns: 1fr; }
   .user-stat-grid { grid-template-columns: 1fr; }
   .user-modal-tabs, .calendar-event-modal > nav { grid-template-columns: repeat(2, 1fr); }
   .event-minutes article { grid-template-columns: 1fr; }
+  .creator-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .event-people > article { grid-template-columns: 36px minmax(0, 1fr); }
+  .event-people > article > select { grid-column: 2; }
+  .event-agenda article { grid-template-columns: 29px minmax(0, 1fr); }
+  .event-agenda article > :nth-child(n + 3) { grid-column: 2; }
+  .event-reminders > label { grid-template-columns: 20px minmax(0, 1fr); }
+  .event-reminders > label select { grid-column: 2; }
+  .event-tasks > label { grid-template-columns: 20px minmax(0, 1fr); }
+  .event-tasks > label small { grid-column: 2; }
 }
 
 @media (max-width: 620px) {
