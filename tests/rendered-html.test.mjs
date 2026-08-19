@@ -81,6 +81,9 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(users, /تخصیص نقش و دسترسی/);
   assert.match(users, /مدیریت گردش کار/);
   assert.match(calendar, /PersianDatePicker/);
+  assert.match(calendar, /type="time"/);
+  assert.match(calendar, /setEventOpen\(true\)/);
+  assert.doesNotMatch(calendar, /onDoubleClick/);
   assert.match(calendar, /تقویم شمسی مدیریتی/);
   assert.match(calendar, /مشخصات رویداد/);
   assert.match(calendar, /افراد مرتبط/);
@@ -103,6 +106,8 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(layout, /سامانه مدیریت پروژه‌های بانک سپه/);
   assert.match(css, /IRANSans-Medium\.ttf/);
   assert.match(css, /backdrop-filter:\s*blur/);
+  assert.match(css, /body \{ font-size: 13px; \}/);
+  assert.match(css, /Unified executive glass system/);
   assert.match(css, /\.dashboard-primary-charts[^}]*1\.5fr/);
   assert.match(css, /\.donut-chart[^}]*width:\s*138px/);
   assert.match(css, /\.dashboard-owner-row \.owner-bars[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);

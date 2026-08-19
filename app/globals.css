@@ -2277,6 +2277,257 @@ body { font-family: "IRANSans", Tahoma, sans-serif; font-size: 11px; }
   }
 }
 
+/* Unified executive glass system: readable typography, compact KPIs and vivid forms. */
+body { font-size: 13px; }
+
+:is(.menu-sidebar, .dashboard-main, .projects-workspace, .ops-modal, .project-full-modal, .profile-dialog, .login-card, .login-intro)
+  :is(p, small, em, label, span, button, input, select, textarea, th, td, time) {
+  font-size: 13px !important;
+}
+
+.sidebar-nav button strong,
+.menu-brand strong,
+.menu-user span { font-size: 13px !important; }
+
+:is(
+  .dashboard-stat,
+  .ops-summary-grid article,
+  .strategy-stat,
+  .user-stat-grid article,
+  .report-stat-grid article,
+  .finance-summary article,
+  .approval-overview article,
+  .wbs-summary > span,
+  .charter-summary-grid article,
+  .detail-summary > div
+) {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.9);
+  background:
+    linear-gradient(122deg, rgba(255,255,255,.83), rgba(212,243,248,.46) 52%, rgba(124,211,225,.22));
+  box-shadow:
+    0 17px 36px rgba(0,58,82,.16),
+    0 5px 12px rgba(0,80,108,.08),
+    inset 0 1px rgba(255,255,255,1),
+    inset 0 -1px rgba(0,112,143,.09);
+  backdrop-filter: blur(26px) saturate(1.5);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+:is(
+  .dashboard-stat,
+  .ops-summary-grid article,
+  .strategy-stat,
+  .user-stat-grid article,
+  .report-stat-grid article,
+  .finance-summary article,
+  .approval-overview article,
+  .wbs-summary > span,
+  .charter-summary-grid article,
+  .detail-summary > div
+)::before {
+  content: "";
+  width: 72%;
+  height: 70%;
+  position: absolute;
+  top: -46%;
+  right: -10%;
+  pointer-events: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,.55);
+  filter: blur(18px);
+}
+
+:is(
+  .dashboard-stat,
+  .ops-summary-grid article,
+  .strategy-stat,
+  .user-stat-grid article,
+  .report-stat-grid article,
+  .finance-summary article,
+  .approval-overview article
+):hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,1);
+  box-shadow: 0 22px 42px rgba(0,58,82,.2), inset 0 1px white;
+}
+
+.dashboard-stat,
+.strategy-stat,
+.user-stat-grid article,
+.report-stat-grid article { min-height: 88px !important; padding: 11px 12px; align-items: center; }
+
+:is(.dashboard-stat, .strategy-stat, .user-stat-grid article, .report-stat-grid article) > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 9px;
+  row-gap: 3px;
+}
+
+:is(.dashboard-stat, .strategy-stat, .user-stat-grid article, .report-stat-grid article) > div > strong {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  color: #073b50;
+  font-size: 24px;
+  line-height: 1;
+}
+
+:is(.dashboard-stat, .strategy-stat, .user-stat-grid article, .report-stat-grid article) > div > small {
+  grid-column: 2;
+  grid-row: 1;
+  color: #385f6d;
+  line-height: 1.6;
+}
+
+:is(.dashboard-stat, .strategy-stat, .user-stat-grid article, .report-stat-grid article) > div > em {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  color: #718b94;
+  line-height: 1.5;
+}
+
+:is(.dashboard-stat, .strategy-stat, .user-stat-grid article, .report-stat-grid article) > span,
+.ops-summary-grid article > span,
+.approval-overview article > span {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255,255,255,.92);
+  border-radius: 14px;
+  box-shadow: 0 12px 24px rgba(0,65,91,.2), inset 0 1px rgba(255,255,255,.55), inset 0 -3px rgba(0,39,57,.09);
+}
+
+.ops-summary-grid article {
+  min-height: 88px;
+  padding: 11px 12px;
+  grid-template-columns: 42px auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 9px;
+}
+.ops-summary-grid article > span { grid-column: 1; grid-row: 1 / 3; }
+.ops-summary-grid article > strong { grid-column: 2; grid-row: 1; margin: 0; color: #073b50; font-size: 24px; }
+.ops-summary-grid article > small { grid-column: 3; grid-row: 1; color: #385f6d; line-height: 1.6; }
+.ops-summary-grid article > em { grid-column: 2 / 4; grid-row: 2; color: #718b94; line-height: 1.5; }
+
+.approval-overview article { min-height: 78px; padding: 10px 12px; }
+.approval-overview article div { display: flex; align-items: center; gap: 9px; }
+.approval-overview article div strong { order: -1; color: #073b50; font-size: 23px; }
+.approval-overview article div small { color: #385f6d; }
+
+.finance-summary article {
+  min-height: 82px;
+  padding: 11px 13px;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 9px;
+}
+.finance-summary article strong { grid-column: 1; grid-row: 1; margin: 0; font-size: 23px; }
+.finance-summary article small { grid-column: 2; grid-row: 1; color: #385f6d; }
+.finance-summary article > span { grid-column: 1 / -1; grid-row: 2; color: #718b94; }
+
+.wbs-summary > span,
+.charter-summary-grid article,
+.detail-summary > div {
+  min-height: 64px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+}
+.wbs-summary > span > strong,
+.charter-summary-grid article > strong,
+.detail-summary > div > strong { grid-column: 1; grid-row: 1; color: #17495a; font-size: 13px; }
+.wbs-summary > span > small,
+.charter-summary-grid article > small,
+.detail-summary > div > span { grid-column: 2; grid-row: 1; color: #557681; }
+
+.ops-modal,
+.project-full-modal,
+.project-action-modal,
+.wbs-detail-modal,
+.wbs-delete-modal {
+  position: relative;
+  border: 1px solid rgba(255,255,255,.94);
+  background:
+    radial-gradient(circle at 88% 4%, rgba(28,196,220,.24), transparent 28%),
+    radial-gradient(circle at 8% 95%, rgba(244,157,58,.12), transparent 25%),
+    linear-gradient(145deg, rgba(236,251,253,.96), rgba(171,225,235,.91));
+  box-shadow:
+    0 42px 110px rgba(0,24,43,.46),
+    0 0 0 5px rgba(255,255,255,.1),
+    inset 0 1px white,
+    inset 0 -1px rgba(0,97,128,.12);
+  backdrop-filter: blur(30px) saturate(1.5);
+}
+
+.ops-modal::before,
+.project-full-modal::before,
+.project-action-modal::before {
+  content: "";
+  height: 4px;
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  right: 26px;
+  left: 26px;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(90deg, transparent, #f39b38 20%, #12bad2 52%, #087b9f 82%, transparent);
+  box-shadow: 0 3px 16px rgba(7,145,178,.28);
+}
+
+.ops-modal > header,
+.ops-modal > footer {
+  background: linear-gradient(135deg, rgba(255,255,255,.62), rgba(190,234,241,.34));
+  backdrop-filter: blur(22px);
+}
+.ops-modal > header { border-bottom-color: rgba(0,123,154,.14); }
+.ops-modal > footer { border-top-color: rgba(0,123,154,.14); }
+
+.ops-modal-body,
+.creator-form,
+.project-dashboard-content,
+.user-profile-form > aside,
+.report-designer-grid section {
+  border: 1px solid rgba(255,255,255,.78);
+  background: linear-gradient(145deg, rgba(255,255,255,.48), rgba(211,242,247,.25));
+  box-shadow: inset 0 1px rgba(255,255,255,.86), 0 14px 34px rgba(0,66,90,.08);
+  backdrop-filter: blur(22px) saturate(1.3);
+}
+.ops-modal-body { margin: 12px; border-radius: 18px; }
+
+.menu-page :is(input, select, textarea),
+.ops-modal :is(input, select, textarea),
+.project-full-modal :is(input, select, textarea) {
+  min-height: 44px;
+  color: #153f50;
+  border: 1px solid rgba(0,112,143,.2);
+  border-radius: 12px;
+  outline: 0;
+  background: linear-gradient(145deg, rgba(255,255,255,.74), rgba(224,246,249,.52));
+  box-shadow: inset 0 2px 7px rgba(0,74,99,.06), inset 0 1px white, 0 7px 16px rgba(0,68,92,.06);
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.menu-page :is(input, select, textarea):focus,
+.ops-modal :is(input, select, textarea):focus,
+.project-full-modal :is(input, select, textarea):focus {
+  border-color: #0aa9c5;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 0 0 4px rgba(7,169,198,.13), 0 12px 24px rgba(0,93,122,.09), inset 0 1px white;
+}
+.ops-form-grid label > span,
+.form-field > span { color: #234f60; font-weight: 700; }
+.ops-form-grid input[type="time"] { direction: ltr; color-scheme: light; }
+
 @media (prefers-reduced-motion: reduce) {
   .menu-orb,
   .menu-page::after,
