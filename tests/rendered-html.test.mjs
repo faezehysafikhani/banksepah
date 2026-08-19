@@ -105,6 +105,7 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(css, /backdrop-filter:\s*blur/);
   assert.match(css, /\.dashboard-primary-charts[^}]*1\.5fr/);
   assert.match(css, /\.donut-chart[^}]*width:\s*138px/);
+  assert.match(css, /\.dashboard-owner-row \.owner-bars[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
   assert.match(css, /\.projects-workspace[\s\S]*?overflow-x:\s*hidden/);
   assert.match(css, /\.dashboard-main[\s\S]*?overflow-x:\s*hidden/);
   assert.match(css, /\.project-full-content[^}]*overflow-x:\s*hidden/);

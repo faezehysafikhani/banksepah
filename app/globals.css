@@ -1590,7 +1590,7 @@ button {
 
 /* Persian management calendar */
 .dashboard-primary-charts { grid-template-columns: minmax(520px, 1.5fr) minmax(260px, .72fr); align-items: stretch; }
-.dashboard-owner-row { margin-top: 18px; }.dashboard-owner-row .owner-chart-card { min-height: 300px; }.dashboard-owner-row .owner-bars { grid-template-columns: repeat(2, 1fr); column-gap: 35px; }
+.dashboard-owner-row { margin-top: 18px; }.dashboard-owner-row .owner-chart-card { min-height: 350px; }.dashboard-owner-row .owner-bars { grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .dashboard-calendar-card { min-height: 470px; }.dashboard-calendar-card .chart-title button { padding: 7px 9px; display: inline-flex; align-items: center; gap: 5px; color: white; border: 1px solid rgba(255,255,255,.6); border-radius: 9px; background: linear-gradient(135deg, #087ea2, #12b4c9); box-shadow: 0 8px 17px rgba(0,105,136,.17); font: inherit; }
 .calendar-month { min-height: 58px; padding: 8px 3px; display: flex; align-items: center; justify-content: space-between; }.calendar-month div { display: grid; justify-items: center; gap: 3px; }.calendar-month strong { font-size: 14px; }.calendar-month small { color: #6e8993; }.calendar-month button { width: 32px; height: 32px; display: grid; place-items: center; color: #087e9e; border: 1px solid rgba(0,110,141,.13); border-radius: 9px; background: rgba(255,255,255,.46); }
 .calendar-weekdays, .datepicker-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; color: #527783; text-align: center; font-weight: 700; }.calendar-weekdays span:last-child, .datepicker-week span:last-child { color: #cf4050; }
