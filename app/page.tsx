@@ -6,10 +6,14 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import {
   BarChart3,
+  Bell,
+  CalendarDays,
   Check,
+  ChevronDown,
   ChevronLeft,
   CircleGauge,
   ClipboardList,
+  Clock3,
   Eye,
   EyeOff,
   FileText,
@@ -27,6 +31,7 @@ import {
   Target,
   UserRound,
   UsersRound,
+  X,
 } from "lucide-react";
 
 type AuthUser = {
@@ -185,8 +190,28 @@ function LoginScreen({ onAuthenticated }: { onAuthenticated: (user: AuthUser) =>
 function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
   const [active, setActive] = useState(navigation[0].label);
   const [collapsed, setCollapsed] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const projectActive = active === "سبد پروژه‌ها و اقدامات";
   const operationsActive = ["تعریف اقدام", "مرکز وظایف", "مرکز تأییدات", "مدیریت دانش"].includes(active);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const persianDate = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(now);
+  const persianTime = new Intl.DateTimeFormat("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(now);
 
   return (
     <main className="menu-page">
@@ -198,13 +223,34 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
 
       {active === "داشبورد مدیریتی" && (
         <section className={`dashboard-main ${collapsed ? "sidebar-collapsed" : ""}`}>
-          <header className="dashboard-heading">
-            <div>
-              <span>نمای کلی سامانه</span>
-              <h1>داشبورد مدیریتی</h1>
-              <p>آخرین وضعیت سبد پروژه‌ها و اقدامات راهبردی بانک سپه</p>
+          <header className="dashboard-topbar">
+            <div className="dashboard-profile">
+              <button
+                className="dashboard-avatar"
+                type="button"
+                onClick={() => setProfileMenuOpen((value) => !value)}
+                aria-expanded={profileMenuOpen}
+                aria-label="باز کردن منوی کاربری"
+              >
+                <span><UserRound size={25} /></span>
+                <ChevronDown size={15} />
+              </button>
+              <div className="dashboard-person">
+                <strong>{user.displayName}</strong>
+                <small>{user.role}</small>
+                <p><CalendarDays size={13} />{persianDate}<i /><Clock3 size={13} />{persianTime}</p>
+              </div>
+              {profileMenuOpen && (
+                <div className="dashboard-profile-menu" role="menu">
+                  <button type="button" onClick={() => { setProfileOpen(true); setProfileMenuOpen(false); }}><UserRound size={16} /> پروفایل کاربری</button>
+                  <button type="button" className="danger" onClick={onLogout}><LogOut size={16} /> خروج از حساب</button>
+                </div>
+              )}
             </div>
-            <div className="dashboard-status"><i /> اطلاعات به‌روز است</div>
+            <button className="dashboard-notifications" type="button" aria-label="اعلان‌ها" title="اعلان‌ها">
+              <Bell size={21} />
+              <i />
+            </button>
           </header>
 
           <div className="dashboard-stats">
@@ -250,6 +296,20 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
             </article>
           </div>
         </section>
+      )}
+
+      {profileOpen && (
+        <div className="profile-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setProfileOpen(false); }}>
+          <section className="profile-dialog" role="dialog" aria-modal="true" aria-label="پروفایل کاربری">
+            <button className="profile-dialog-close" type="button" onClick={() => setProfileOpen(false)} aria-label="بستن"><X size={18} /></button>
+            <div className="profile-dialog-avatar"><UserRound size={42} /></div>
+            <small>پروفایل کاربری</small>
+            <h2>{user.displayName}</h2>
+            <span>{user.role}</span>
+            <div><span>نام کاربری</span><strong>{user.username}</strong></div>
+            <div><span>سمت سازمانی</span><strong>{user.role}</strong></div>
+          </section>
+        </div>
       )}
 
       {projectActive && <ProjectsWorkspace key={active} collapsed={collapsed} section={active} />}

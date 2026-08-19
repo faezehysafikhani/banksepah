@@ -65,6 +65,11 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(reports, /طراحی گزارش جدید/);
   assert.match(page, /UsersWorkspace/);
   assert.match(page, /DashboardCalendar/);
+  assert.match(page, /dashboard-topbar/);
+  assert.match(page, /پروفایل کاربری/);
+  assert.match(page, /خروج از حساب/);
+  assert.match(page, /persianTime/);
+  assert.doesNotMatch(page, /اطلاعات به‌روز است/);
   assert.match(users, /اطلاعات کاربری/);
   assert.match(users, /اطلاعات سازمانی/);
   assert.match(users, /نقش‌ها و دسترسی‌ها/);
@@ -98,6 +103,8 @@ test("ships the Sepah project-management experience", async () => {
   assert.match(layout, /سامانه مدیریت پروژه‌های بانک سپه/);
   assert.match(css, /IRANSans-Medium\.ttf/);
   assert.match(css, /backdrop-filter:\s*blur/);
+  assert.match(css, /\.dashboard-primary-charts[^}]*1\.5fr/);
+  assert.match(css, /\.donut-chart[^}]*width:\s*138px/);
   assert.match(css, /\.projects-workspace[\s\S]*?overflow-x:\s*hidden/);
   assert.match(css, /\.dashboard-main[\s\S]*?overflow-x:\s*hidden/);
   assert.match(css, /\.project-full-content[^}]*overflow-x:\s*hidden/);
