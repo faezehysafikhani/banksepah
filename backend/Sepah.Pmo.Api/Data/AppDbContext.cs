@@ -9,6 +9,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 {
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectRole> ProjectRoles => Set<ProjectRole>();
     public DbSet<ProjectUserAccess> ProjectUserAccess => Set<ProjectUserAccess>();
@@ -33,6 +35,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         builder.Entity<TenantMembership>().HasIndex(x => new { x.TenantId, x.UserId }).IsUnique();
         builder.Entity<TenantMembership>().HasOne(x => x.Tenant).WithMany(x => x.Memberships).HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<TenantMembership>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<SystemSetting>().HasIndex(x => new { x.TenantId, x.Key }).IsUnique();
+        builder.Entity<SystemSetting>().HasOne(x => x.Tenant).WithMany(x => x.Settings).HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AppNotification>().HasIndex(x => new { x.TenantId, x.UserId, x.IsRead });
+        builder.Entity<AppNotification>().HasOne(x => x.Tenant).WithMany(x => x.Notifications).HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AppNotification>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<Project>().Property(x => x.Budget).HasPrecision(18, 0);
         builder.Entity<ProjectWbsItem>().Property(x => x.Weight).HasPrecision(5, 2);
         builder.Entity<ProjectWbsItem>().Property(x => x.Cost).HasPrecision(18, 0);

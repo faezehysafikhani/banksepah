@@ -14,6 +14,7 @@ public static class SeedData
         await EnsureProjectAccessSchemaAsync(db);
         await EnsureWorkbookModulesSchemaAsync(db);
         await EnsureTenantSchemaAsync(db);
+        await EnsurePlatformSchemaAsync(db);
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
         foreach (var role in new[] { "Administrator", "ProjectManager", "User" })
             if (!await roleManager.RoleExistsAsync(role)) await roleManager.CreateAsync(new IdentityRole<int>(role));
@@ -68,6 +69,7 @@ public static class SeedData
 
         await EnsurePortfolioSampleDataAsync(db);
         await EnsureTenantSeedAsync(db, admin, ali, maryam, sara, reza, narges);
+        await EnsurePlatformSeedAsync(db, admin, ali, maryam);
 
         var workbookProject = await db.Projects.OrderBy(x => x.Id).FirstAsync();
         if (!await db.ProjectWbsItems.AnyAsync(x => x.ProjectId == workbookProject.Id))
@@ -224,6 +226,50 @@ public static class SeedData
         await db.SaveChangesAsync();
     }
 
+    private static async Task EnsurePlatformSeedAsync(AppDbContext db, AppUser admin, AppUser ali, AppUser maryam)
+    {
+        foreach (var tenant in await db.Tenants.ToListAsync())
+        {
+            var defaults = new Dictionary<string,string>
+            {
+                ["General.OrganizationName"] = tenant.Name,
+                ["General.TimeZone"] = "Asia/Tehran",
+                ["General.PersianCalendar"] = "true",
+                ["Ai.Enabled"] = "true",
+                ["Ai.Provider"] = "SepahInsight",
+                ["Ai.OllamaUrl"] = "http://localhost:11434",
+                ["Ai.Model"] = "qwen2.5:3b",
+                ["Ai.IncludeProjectData"] = "true",
+                ["Sms.Enabled"] = "false",
+                ["Sms.Provider"] = "کاوه‌نگار",
+                ["Sms.SenderNumber"] = "",
+                ["Sms.DailyLimit"] = "500",
+                ["Sms.Events"] = "approval,dueDate,criticalRisk",
+                ["Theme.Name"] = "ocean",
+                ["Theme.Density"] = "comfortable",
+                ["Theme.GlassIntensity"] = "82",
+                ["Theme.Motion"] = "true"
+            };
+            var existingKeys = await db.SystemSettings.Where(x => x.TenantId == tenant.Id).Select(x => x.Key).ToListAsync();
+            db.SystemSettings.AddRange(defaults.Where(x => !existingKeys.Contains(x.Key)).Select(x => new SystemSetting { TenantId=tenant.Id, Key=x.Key, Value=x.Value }));
+        }
+        await db.SaveChangesAsync();
+
+        if (!await db.AppNotifications.AnyAsync())
+        {
+            var primary = await db.Tenants.SingleAsync(x => x.Code == "SEPAH");
+            var digital = await db.Tenants.SingleAsync(x => x.Code == "SEPAH-DIGITAL");
+            db.AppNotifications.AddRange(
+                new AppNotification { TenantId=primary.Id, UserId=admin.Id, Title="سه منشور در انتظار تأیید", Message="منشور پروژه‌های اولویت‌دار برای تصمیم مدیریتی آماده است.", Category="تأییدات", Priority="مهم", CreatedAtUtc=DateTime.UtcNow.AddMinutes(-18) },
+                new AppNotification { TenantId=primary.Id, UserId=admin.Id, Title="ریسک بحرانی جدید", Message="ریسک تأخیر تأمین زیرساخت در سبد پروژه‌ها نیازمند پاسخ است.", Category="ریسک", Priority="بحرانی", CreatedAtUtc=DateTime.UtcNow.AddHours(-2) },
+                new AppNotification { TenantId=primary.Id, UserId=admin.Id, Title="گزارش هفتگی آماده شد", Message="گزارش عملکرد سبد و انحراف برنامه قابل دریافت است.", Category="گزارش", IsRead=true, CreatedAtUtc=DateTime.UtcNow.AddDays(-1) },
+                new AppNotification { TenantId=primary.Id, UserId=ali.Id, Title="وظیفه جدید به شما ارجاع شد", Message="به‌روزرسانی برنامه زمان‌بندی پروژه مرکز داده.", Category="وظیفه", Priority="مهم", CreatedAtUtc=DateTime.UtcNow.AddMinutes(-42) },
+                new AppNotification { TenantId=digital.Id, UserId=admin.Id, Title="Sprint Review آماده برگزاری است", Message="گزارش سه پروژه شرکت توسعه فناوری سپه به‌روزرسانی شد.", Category="پروژه", CreatedAtUtc=DateTime.UtcNow.AddHours(-1) },
+                new AppNotification { TenantId=digital.Id, UserId=maryam.Id, Title="دو اقدام موعد امروز دارند", Message="اقدامات پروژه‌های بانکداری دیجیتال نیازمند پیگیری است.", Category="اقدام", Priority="مهم", CreatedAtUtc=DateTime.UtcNow.AddHours(-3) });
+            await db.SaveChangesAsync();
+        }
+    }
+
     private static async Task<AppUser> EnsureUserAsync(UserManager<AppUser> manager, string username, string displayName, string jobTitle, string department, string role)
     {
         var user = await manager.FindByNameAsync(username);
@@ -268,6 +314,32 @@ public static class SeedData
             );
             CREATE UNIQUE INDEX [IX_TenantMemberships_TenantId_UserId] ON [TenantMemberships] ([TenantId],[UserId]);
             CREATE INDEX [IX_TenantMemberships_UserId] ON [TenantMemberships] ([UserId]);
+        END
+        """);
+
+    private static Task EnsurePlatformSchemaAsync(AppDbContext db) => db.Database.ExecuteSqlRawAsync("""
+        IF OBJECT_ID(N'[SystemSettings]', N'U') IS NULL
+        BEGIN
+            CREATE TABLE [SystemSettings] (
+                [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_SystemSettings] PRIMARY KEY,
+                [TenantId] int NOT NULL, [Key] nvarchar(220) NOT NULL, [Value] nvarchar(max) NOT NULL,
+                [UpdatedAtUtc] datetime2 NOT NULL,
+                CONSTRAINT [FK_SystemSettings_Tenants_TenantId] FOREIGN KEY ([TenantId]) REFERENCES [Tenants] ([Id]) ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX [IX_SystemSettings_TenantId_Key] ON [SystemSettings] ([TenantId],[Key]);
+        END
+        IF OBJECT_ID(N'[AppNotifications]', N'U') IS NULL
+        BEGIN
+            CREATE TABLE [AppNotifications] (
+                [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_AppNotifications] PRIMARY KEY,
+                [TenantId] int NOT NULL, [UserId] int NOT NULL, [Title] nvarchar(300) NOT NULL,
+                [Message] nvarchar(1200) NOT NULL, [Category] nvarchar(80) NOT NULL, [Priority] nvarchar(40) NOT NULL,
+                [IsRead] bit NOT NULL, [CreatedAtUtc] datetime2 NOT NULL,
+                CONSTRAINT [FK_AppNotifications_Tenants_TenantId] FOREIGN KEY ([TenantId]) REFERENCES [Tenants] ([Id]) ON DELETE CASCADE,
+                CONSTRAINT [FK_AppNotifications_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
+            );
+            CREATE INDEX [IX_AppNotifications_TenantId_UserId_IsRead] ON [AppNotifications] ([TenantId],[UserId],[IsRead]);
+            CREATE INDEX [IX_AppNotifications_UserId] ON [AppNotifications] ([UserId]);
         END
         """);
 

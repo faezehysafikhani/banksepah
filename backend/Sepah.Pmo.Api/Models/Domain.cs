@@ -17,6 +17,33 @@ public class Tenant
     public bool IsActive { get; set; } = true;
     public List<TenantMembership> Memberships { get; set; } = [];
     public List<Project> Projects { get; set; } = [];
+    public List<SystemSetting> Settings { get; set; } = [];
+    public List<AppNotification> Notifications { get; set; } = [];
+}
+
+public class SystemSetting
+{
+    public int Id { get; set; }
+    public int TenantId { get; set; }
+    public Tenant? Tenant { get; set; }
+    public string Key { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class AppNotification
+{
+    public int Id { get; set; }
+    public int TenantId { get; set; }
+    public Tenant? Tenant { get; set; }
+    public int UserId { get; set; }
+    public AppUser? User { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string Category { get; set; } = "سامانه";
+    public string Priority { get; set; } = "عادی";
+    public bool IsRead { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class TenantMembership

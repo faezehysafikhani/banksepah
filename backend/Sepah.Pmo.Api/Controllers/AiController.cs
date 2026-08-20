@@ -10,7 +10,7 @@ using Sepah.Pmo.Api.Models;
 namespace Sepah.Pmo.Api.Controllers;
 
 [Authorize, ApiController, Route("api/ai")]
-public class AiController(AppDbContext db, UserManager<AppUser> users, IConfiguration configuration, IHttpClientFactory httpClients) : ControllerBase
+public class AiController(AppDbContext db, UserManager<AppUser> users, IHttpClientFactory httpClients) : ControllerBase
 {
     [HttpPost("chat")]
     public async Task<ActionResult<object>> Chat(AiChatRequest request, CancellationToken cancellationToken)
@@ -19,17 +19,30 @@ public class AiController(AppDbContext db, UserManager<AppUser> users, IConfigur
         if (message.Length < 2) return BadRequest(new { error = "سؤال خود را کمی کامل‌تر بنویسید." });
         var tenantId = await TenantScope.ResolveAsync(HttpContext, db, users);
         var tenant = await db.Tenants.AsNoTracking().SingleAsync(x => x.Id == tenantId, cancellationToken);
-        var projects = await db.Projects.AsNoTracking().Where(x => x.TenantId == tenantId).OrderBy(x => x.Id).ToListAsync(cancellationToken);
-        var risks = await db.ProjectRisks.AsNoTracking().Where(x => x.Project!.TenantId == tenantId)
+        var settings = await db.SystemSettings.AsNoTracking().Where(x => x.TenantId == tenantId && x.Key.StartsWith("Ai."))
+            .ToDictionaryAsync(x => x.Key, x => x.Value, cancellationToken);
+        if (settings.GetValueOrDefault("Ai.Enabled", "true") != "true") return BadRequest(new { error="دستیار هوشمند برای این سازمان غیرفعال است." });
+        if (settings.GetValueOrDefault("Ai.IncludeProjectData", "true") != "true")
+            return Ok(new { answer="دسترسی AI به داده پروژه‌ها در تنظیمات این سازمان غیرفعال است.", provider="Sepah Insight محلی (رایگان)", tenant=tenant.Name, suggestions=Array.Empty<string>() });
+        var projectQuery = db.Projects.AsNoTracking().Where(x => x.TenantId == tenantId);
+        if (!User.IsInRole("Administrator"))
+        {
+            var userId = int.Parse(users.GetUserId(User)!);
+            projectQuery = projectQuery.Where(x => x.UserAccess.Any(a => a.UserId == userId && a.CanView));
+        }
+        var projects = await projectQuery.OrderBy(x => x.Id).ToListAsync(cancellationToken);
+        var projectIds = projects.Select(x => x.Id).ToList();
+        var risks = await db.ProjectRisks.AsNoTracking().Where(x => projectIds.Contains(x.ProjectId))
             .Select(x => new RiskInsight(x.Title, x.Probability, x.Severity, x.Impact, x.ResponsePlan, x.Project!.Name)).ToListAsync(cancellationToken);
         var names = projects.Select(x => x.Name).ToList();
         var tasks = await db.WorkTasks.AsNoTracking().Where(x => names.Contains(x.ProjectName)).ToListAsync(cancellationToken);
         var localAnswer = BuildLocalAnswer(message, tenant.Name, projects, risks, tasks);
-        var answer = await TryOllamaAsync(message, localAnswer, cancellationToken) ?? localAnswer;
+        var answer = await TryOllamaAsync(message, localAnswer, settings, cancellationToken) ?? localAnswer;
+        var usesOllama = settings.GetValueOrDefault("Ai.Provider") == "Ollama";
         return Ok(new
         {
             answer,
-            provider = configuration.GetValue<bool>("Ai:UseOllama") ? "Ollama محلی (رایگان)" : "Sepah Insight محلی (رایگان)",
+            provider = usesOllama ? "Ollama محلی (رایگان)" : "Sepah Insight محلی (رایگان)",
             tenant = tenant.Name,
             suggestions = new[] { "پروژه‌های پرریسک کدام‌اند؟", "خلاصه وضعیت سبد را بده", "بودجه پروژه‌ها را تحلیل کن", "اقدامات باز را جمع‌بندی کن" }
         });
@@ -70,16 +83,16 @@ public class AiController(AppDbContext db, UserManager<AppUser> users, IConfigur
         return $"خلاصه مدیریتی «{tenantName}»: {projects.Count} پروژه شامل {active} در حال انجام، {planning} در برنامه‌ریزی و {completed} تکمیل‌شده است. بودجه کل {Number(totalBudget)} ریال، اقدامات باز {tasks.Count(x => x.Status != "تکمیل شده")} و ریسک‌های بحرانی {criticalRisks.Count} مورد است.\nاولویت پیشنهادی: رسیدگی به ریسک‌های بحرانی، تثبیت خط مبنای پروژه‌های برنامه‌ریزی و بستن اقدامات معوق.";
     }
 
-    private async Task<string?> TryOllamaAsync(string question, string facts, CancellationToken cancellationToken)
+    private async Task<string?> TryOllamaAsync(string question, string facts, Dictionary<string,string> settings, CancellationToken cancellationToken)
     {
-        if (!configuration.GetValue<bool>("Ai:UseOllama")) return null;
+        if (settings.GetValueOrDefault("Ai.Provider") != "Ollama") return null;
         try
         {
             using var client = httpClients.CreateClient();
-            client.BaseAddress = new Uri(configuration["Ai:OllamaUrl"] ?? "http://localhost:11434");
+            client.BaseAddress = new Uri(settings.GetValueOrDefault("Ai.OllamaUrl", "http://localhost:11434"));
             client.Timeout = TimeSpan.FromSeconds(12);
             var prompt = $"تو دستیار مدیریت پروژه بانک سپه هستی. فقط بر اساس داده‌های زیر و کوتاه و فارسی پاسخ بده.\nداده‌ها:\n{facts}\nسؤال:\n{question}";
-            using var response = await client.PostAsJsonAsync("/api/generate", new { model = configuration["Ai:Model"] ?? "qwen2.5:3b", prompt, stream = false }, cancellationToken);
+            using var response = await client.PostAsJsonAsync("/api/generate", new { model = settings.GetValueOrDefault("Ai.Model", "qwen2.5:3b"), prompt, stream = false }, cancellationToken);
             if (!response.IsSuccessStatusCode) return null;
             using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
             return json.RootElement.TryGetProperty("response", out var value) ? value.GetString() : null;

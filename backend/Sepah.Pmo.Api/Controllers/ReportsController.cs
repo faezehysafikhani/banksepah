@@ -15,9 +15,16 @@ public class ReportsController(AppDbContext db, UserManager<AppUser> users) : Co
     public async Task<ActionResult<object>> Summary()
     {
         var tenantId = await TenantScope.ResolveAsync(HttpContext, db, users);
-        var projects = await db.Projects.AsNoTracking().Where(x => x.TenantId == tenantId).OrderBy(x => x.Id).ToListAsync();
+        var projectQuery = db.Projects.AsNoTracking().Where(x => x.TenantId == tenantId);
+        if (!User.IsInRole("Administrator"))
+        {
+            var userId = int.Parse(users.GetUserId(User)!);
+            projectQuery = projectQuery.Where(x => x.UserAccess.Any(a => a.UserId == userId && a.CanView));
+        }
+        var projects = await projectQuery.OrderBy(x => x.Id).ToListAsync();
+        var projectIds = projects.Select(x => x.Id).ToList();
         var projectNames = projects.Select(x => x.Name).ToList();
-        var risks = await db.ProjectRisks.AsNoTracking().Where(x => x.Project!.TenantId == tenantId).ToListAsync();
+        var risks = await db.ProjectRisks.AsNoTracking().Where(x => projectIds.Contains(x.ProjectId)).ToListAsync();
         var openTasks = await db.WorkTasks.CountAsync(x => projectNames.Contains(x.ProjectName) && x.Status != "تکمیل شده");
         var portfolio = projects.Select(project =>
         {
@@ -39,7 +46,7 @@ public class ReportsController(AppDbContext db, UserManager<AppUser> users) : Co
             actions = await db.WorkTasks.CountAsync(x => projectNames.Contains(x.ProjectName)),
             openTasks,
             events = await db.CalendarEvents.CountAsync(),
-            pendingCharterApprovals = await db.CharterApprovals.CountAsync(x => x.Project!.TenantId == tenantId && x.Status == "در انتظار"),
+            pendingCharterApprovals = await db.CharterApprovals.CountAsync(x => projectIds.Contains(x.ProjectId) && x.Status == "در انتظار"),
             risks = risks.Count,
             criticalRisks = risks.Count(x => x.Probability * x.Severity * x.Impact >= 24),
             totalBudget,
@@ -63,7 +70,13 @@ public class ReportsController(AppDbContext db, UserManager<AppUser> users) : Co
     public async Task<IActionResult> ProjectsExcel()
     {
         var tenantId = await TenantScope.ResolveAsync(HttpContext, db, users);
-        var rows = await db.Projects.AsNoTracking().Where(x => x.TenantId == tenantId).OrderBy(x => x.Id).ToListAsync();
+        var query = db.Projects.AsNoTracking().Where(x => x.TenantId == tenantId);
+        if (!User.IsInRole("Administrator"))
+        {
+            var userId = int.Parse(users.GetUserId(User)!);
+            query = query.Where(x => x.UserAccess.Any(a => a.UserId == userId && a.CanView));
+        }
+        var rows = await query.OrderBy(x => x.Id).ToListAsync();
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("گزارش پروژه‌ها");
         sheet.RightToLeft = true;

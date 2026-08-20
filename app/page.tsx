@@ -80,6 +80,8 @@ const UsersWorkspace = dynamic(() => import("./components/UsersWorkspace"));
 const DashboardCalendar = dynamic(() => import("./components/DashboardCalendar"));
 const TenantWorkspace = dynamic(() => import("./components/TenantWorkspace"));
 const AiAssistant = dynamic(() => import("./components/AiAssistant"));
+const NotificationCenter = dynamic(() => import("./components/NotificationCenter"));
+const SettingsWorkspace = dynamic(() => import("./components/SettingsWorkspace"));
 
 type TenantSummary = { id: number; code: string; name: string; role: string; projectCount: number; memberCount: number; isCurrent: boolean };
 
@@ -198,6 +200,8 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
   const [summary, setSummary] = useState<DashboardSummary>(fallbackSummary);
   const [tenants, setTenants] = useState<TenantSummary[]>([]);
   const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
   const projectActive = active === "سبد پروژه‌ها و اقدامات";
   const operationsActive = ["تعریف اقدام", "مرکز وظایف", "مرکز تأییدات", "مدیریت دانش"].includes(active);
 
@@ -209,6 +213,11 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
   useEffect(() => {
     api<DashboardSummary>("/reports/summary").then(setSummary).catch(() => undefined);
     api<TenantSummary[]>("/tenants").then(setTenants).catch(() => undefined);
+    api<{ unread: number }>("/notifications?take=1").then((result) => setNotificationCount(result.unread)).catch(() => undefined);
+    api<{ values: Record<string,string> }>("/settings").then((result) => {
+      const theme = result.values["Theme.Name"] ?? localStorage.getItem("sepah-theme") ?? "ocean";
+      document.documentElement.dataset.theme = theme;
+    }).catch(() => undefined);
   }, []);
 
   async function selectTenant(tenantId: number) {
@@ -277,9 +286,10 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
                 </div>
               )}
             </div>
-            <button className="dashboard-notifications" type="button" aria-label="اعلان‌ها" title="اعلان‌ها">
+            <button className="dashboard-notifications" type="button" aria-label="اعلان‌ها" title="اعلان‌ها" onClick={() => setNotificationsOpen(true)}>
               <Bell size={21} />
               <i />
+              {notificationCount > 0 && <b>{notificationCount.toLocaleString("fa-IR")}</b>}
             </button>
           </header>
 
@@ -353,6 +363,7 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
       {active === "داشبوردها و گزارشات" && <ReportsWorkspace collapsed={collapsed} />}
       {active === "مدیریت کاربران" && <UsersWorkspace collapsed={collapsed} />}
       {active === "سازمان‌ها و دسترسی‌ها" && <TenantWorkspace collapsed={collapsed} />}
+      {active === "تنظیمات سامانه" && <SettingsWorkspace collapsed={collapsed} />}
 
       <aside className={`menu-sidebar ${collapsed ? "collapsed" : ""}`}>
         <div className="menu-brand">
@@ -391,6 +402,7 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
         </div>
       </aside>
       <AiAssistant />
+      <NotificationCenter open={notificationsOpen} onClose={() => setNotificationsOpen(false)} onUnreadChange={setNotificationCount} />
     </main>
   );
 }
