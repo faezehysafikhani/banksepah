@@ -1,20 +1,24 @@
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sepah.Pmo.Api.Data;
+using Sepah.Pmo.Api.Models;
 
 namespace Sepah.Pmo.Api.Controllers;
 
 [Authorize, ApiController, Route("api/reports")]
-public class ReportsController(AppDbContext db) : ControllerBase
+public class ReportsController(AppDbContext db, UserManager<AppUser> users) : ControllerBase
 {
     [HttpGet("summary")]
     public async Task<ActionResult<object>> Summary()
     {
-        var projects = await db.Projects.AsNoTracking().OrderBy(x => x.Id).ToListAsync();
-        var risks = await db.ProjectRisks.AsNoTracking().ToListAsync();
-        var openTasks = await db.WorkTasks.CountAsync(x => x.Status != "تکمیل شده");
+        var tenantId = await TenantScope.ResolveAsync(HttpContext, db, users);
+        var projects = await db.Projects.AsNoTracking().Where(x => x.TenantId == tenantId).OrderBy(x => x.Id).ToListAsync();
+        var projectNames = projects.Select(x => x.Name).ToList();
+        var risks = await db.ProjectRisks.AsNoTracking().Where(x => x.Project!.TenantId == tenantId).ToListAsync();
+        var openTasks = await db.WorkTasks.CountAsync(x => projectNames.Contains(x.ProjectName) && x.Status != "تکمیل شده");
         var portfolio = projects.Select(project =>
         {
             var actual = project.Status switch { "تکمیل شده" => 100, "برنامه‌ریزی" => 12, "متوقف شده" => 38, _ => 46 + project.Id % 43 };
@@ -32,10 +36,10 @@ public class ReportsController(AppDbContext db) : ControllerBase
             activeProjects = active,
             completedProjects = projects.Count(x => x.Status == "تکمیل شده"),
             delayedProjects = portfolio.Count(x => x.DelayDays >= 8),
-            actions = await db.WorkTasks.CountAsync(),
+            actions = await db.WorkTasks.CountAsync(x => projectNames.Contains(x.ProjectName)),
             openTasks,
             events = await db.CalendarEvents.CountAsync(),
-            pendingCharterApprovals = await db.CharterApprovals.CountAsync(x => x.Status == "در انتظار"),
+            pendingCharterApprovals = await db.CharterApprovals.CountAsync(x => x.Project!.TenantId == tenantId && x.Status == "در انتظار"),
             risks = risks.Count,
             criticalRisks = risks.Count(x => x.Probability * x.Severity * x.Impact >= 24),
             totalBudget,
@@ -58,7 +62,8 @@ public class ReportsController(AppDbContext db) : ControllerBase
     [HttpGet("projects.xlsx")]
     public async Task<IActionResult> ProjectsExcel()
     {
-        var rows = await db.Projects.AsNoTracking().OrderBy(x => x.Id).ToListAsync();
+        var tenantId = await TenantScope.ResolveAsync(HttpContext, db, users);
+        var rows = await db.Projects.AsNoTracking().Where(x => x.TenantId == tenantId).OrderBy(x => x.Id).ToListAsync();
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("گزارش پروژه‌ها");
         sheet.RightToLeft = true;

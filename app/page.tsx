@@ -8,6 +8,7 @@ import { api } from "./lib/api";
 import {
   BarChart3,
   Bell,
+  Building2,
   CalendarDays,
   Check,
   ChevronDown,
@@ -61,6 +62,7 @@ const navigation = [
   { label: "مدیریت استراتژی پروژه‌ها", icon: Target },
   { label: "داشبوردها و گزارشات", icon: BarChart3 },
   { label: "مدیریت کاربران", icon: UsersRound },
+  { label: "سازمان‌ها و دسترسی‌ها", icon: Building2 },
   { label: "تنظیمات سامانه", icon: Settings2 },
 ];
 
@@ -76,6 +78,10 @@ const StrategyWorkspace = dynamic(() => import("./components/StrategyWorkspace")
 const ReportsWorkspace = dynamic(() => import("./components/ReportsWorkspace"));
 const UsersWorkspace = dynamic(() => import("./components/UsersWorkspace"));
 const DashboardCalendar = dynamic(() => import("./components/DashboardCalendar"));
+const TenantWorkspace = dynamic(() => import("./components/TenantWorkspace"));
+const AiAssistant = dynamic(() => import("./components/AiAssistant"));
+
+type TenantSummary = { id: number; code: string; name: string; role: string; projectCount: number; memberCount: number; isCurrent: boolean };
 
 function LoadingScreen() {
   return (
@@ -190,6 +196,8 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
   const [profileOpen, setProfileOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [summary, setSummary] = useState<DashboardSummary>(fallbackSummary);
+  const [tenants, setTenants] = useState<TenantSummary[]>([]);
+  const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
   const projectActive = active === "سبد پروژه‌ها و اقدامات";
   const operationsActive = ["تعریف اقدام", "مرکز وظایف", "مرکز تأییدات", "مدیریت دانش"].includes(active);
 
@@ -200,7 +208,13 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
 
   useEffect(() => {
     api<DashboardSummary>("/reports/summary").then(setSummary).catch(() => undefined);
+    api<TenantSummary[]>("/tenants").then(setTenants).catch(() => undefined);
   }, []);
+
+  async function selectTenant(tenantId: number) {
+    await api("/tenants/select", { method: "POST", body: JSON.stringify({ tenantId }) });
+    window.location.reload();
+  }
 
   const dashboardStats = [
     { label: "تعداد کل پروژه‌ها", value: summary.projects.toLocaleString("fa-IR"), detail: "سبد پروژه‌های بانک", icon: FolderKanban, tone: "cyan" },
@@ -338,6 +352,7 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
       {active === "مدیریت استراتژی پروژه‌ها" && <StrategyWorkspace collapsed={collapsed} />}
       {active === "داشبوردها و گزارشات" && <ReportsWorkspace collapsed={collapsed} />}
       {active === "مدیریت کاربران" && <UsersWorkspace collapsed={collapsed} />}
+      {active === "سازمان‌ها و دسترسی‌ها" && <TenantWorkspace collapsed={collapsed} />}
 
       <aside className={`menu-sidebar ${collapsed ? "collapsed" : ""}`}>
         <div className="menu-brand">
@@ -352,6 +367,11 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
             {collapsed ? <PanelRightOpen size={18} /> : <PanelRightClose size={18} />}
           </button>
         </div>
+
+        {tenants.length > 0 && <div className={`tenant-switcher ${tenantMenuOpen ? "open" : ""}`}>
+          <button type="button" onClick={() => setTenantMenuOpen((value) => !value)} aria-expanded={tenantMenuOpen} title="انتخاب سازمان فعال"><Building2 size={17} /><span><small>سازمان فعال</small><strong>{tenants.find((tenant) => tenant.isCurrent)?.name ?? tenants[0].name}</strong></span><ChevronDown size={14} /></button>
+          {tenantMenuOpen && <div className="tenant-switcher-menu">{tenants.map((tenant) => <button type="button" className={tenant.isCurrent ? "active" : ""} onClick={() => { setTenantMenuOpen(false); if (!tenant.isCurrent) void selectTenant(tenant.id); }} key={tenant.id}><span><Building2 size={15} /></span><div><strong>{tenant.name}</strong><small>{tenant.projectCount.toLocaleString("fa-IR")} پروژه • {tenant.role}</small></div>{tenant.isCurrent && <Check size={15} />}</button>)}</div>}
+        </div>}
 
         <nav className="sidebar-nav" aria-label="منوی اصلی">
           {navigation.map((item) => {
@@ -370,6 +390,7 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
           <button onClick={onLogout} aria-label="خروج از حساب"><LogOut size={18} /><span>خروج</span></button>
         </div>
       </aside>
+      <AiAssistant />
     </main>
   );
 }

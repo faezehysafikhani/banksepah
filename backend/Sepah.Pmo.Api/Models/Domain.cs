@@ -9,9 +9,31 @@ public class AppUser : IdentityUser<int>
     public string Department { get; set; } = string.Empty;
 }
 
+public class Tenant
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public List<TenantMembership> Memberships { get; set; } = [];
+    public List<Project> Projects { get; set; } = [];
+}
+
+public class TenantMembership
+{
+    public int Id { get; set; }
+    public int TenantId { get; set; }
+    public Tenant? Tenant { get; set; }
+    public int UserId { get; set; }
+    public AppUser? User { get; set; }
+    public string Role { get; set; } = "کاربر";
+}
+
 public class Project
 {
     public int Id { get; set; }
+    public int TenantId { get; set; } = 1;
+    public Tenant? Tenant { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = "آبشاری";

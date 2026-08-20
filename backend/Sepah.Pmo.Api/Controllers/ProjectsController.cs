@@ -14,7 +14,8 @@ public class ProjectsController(AppDbContext db, UserManager<AppUser> users) : C
     [HttpGet]
     public async Task<ActionResult<object>> List()
     {
-        var query = db.Projects.AsNoTracking();
+        var tenantId = await TenantScope.ResolveAsync(HttpContext, db, users);
+        var query = db.Projects.AsNoTracking().Where(project => project.TenantId == tenantId);
         if (!User.IsInRole("Administrator"))
         {
             var userId = int.Parse(users.GetUserId(User)!);
@@ -134,6 +135,8 @@ public class ProjectsController(AppDbContext db, UserManager<AppUser> users) : C
 
     private async Task<bool> HasAccessAsync(int projectId, string permission)
     {
+        var tenantId = await TenantScope.ResolveAsync(HttpContext, db, users);
+        if (!await db.Projects.AsNoTracking().AnyAsync(x => x.Id == projectId && x.TenantId == tenantId)) return false;
         if (User.IsInRole("Administrator")) return true;
         var userId = int.Parse(users.GetUserId(User)!);
         var access = await db.ProjectUserAccess.AsNoTracking().SingleOrDefaultAsync(x => x.ProjectId == projectId && x.UserId == userId && x.CanView);

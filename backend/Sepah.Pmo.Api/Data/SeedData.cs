@@ -13,6 +13,7 @@ public static class SeedData
         await db.Database.EnsureCreatedAsync();
         await EnsureProjectAccessSchemaAsync(db);
         await EnsureWorkbookModulesSchemaAsync(db);
+        await EnsureTenantSchemaAsync(db);
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
         foreach (var role in new[] { "Administrator", "ProjectManager", "User" })
             if (!await roleManager.RoleExistsAsync(role)) await roleManager.CreateAsync(new IdentityRole<int>(role));
@@ -28,8 +29,8 @@ public static class SeedData
         var ali = await EnsureUserAsync(userManager, "a.rezaei", "علی رضایی", "مدیر پروژه ارشد", "فناوری اطلاعات", "ProjectManager");
         var maryam = await EnsureUserAsync(userManager, "m.ahmadi", "مریم احمدی", "مدیر محصول", "بانکداری دیجیتال", "ProjectManager");
         var sara = await EnsureUserAsync(userManager, "s.mohammadi", "سارا محمدی", "کارشناس کنترل پروژه", "برنامه‌ریزی", "User");
-        await EnsureUserAsync(userManager, "r.karimi", "رضا کریمی", "ناظر پروژه", "امور اجرایی", "User");
-        await EnsureUserAsync(userManager, "n.hosseini", "نرگس حسینی", "رئیس اداره ریسک", "مدیریت ریسک", "User");
+        var reza = await EnsureUserAsync(userManager, "r.karimi", "رضا کریمی", "ناظر پروژه", "امور اجرایی", "User");
+        var narges = await EnsureUserAsync(userManager, "n.hosseini", "نرگس حسینی", "رئیس اداره ریسک", "مدیریت ریسک", "User");
 
         if (!await db.Projects.AnyAsync())
         {
@@ -66,6 +67,7 @@ public static class SeedData
         }
 
         await EnsurePortfolioSampleDataAsync(db);
+        await EnsureTenantSeedAsync(db, admin, ali, maryam, sara, reza, narges);
 
         var workbookProject = await db.Projects.OrderBy(x => x.Id).FirstAsync();
         if (!await db.ProjectWbsItems.AnyAsync(x => x.ProjectId == workbookProject.Id))
@@ -114,6 +116,40 @@ public static class SeedData
                 db.ProjectUserAccess.Add(new ProjectUserAccess { ProjectId=projects[2].Id, UserId=maryam.Id, CanView=true, CanEdit=true, CanManageTeam=true, CanManageWbs=true, CanApprove=true });
             await db.SaveChangesAsync();
         }
+    }
+
+    private static async Task EnsureTenantSeedAsync(AppDbContext db, AppUser admin, AppUser ali, AppUser maryam, AppUser sara, AppUser reza, AppUser narges)
+    {
+        var primary = await db.Tenants.SingleAsync(x => x.Code == "SEPAH");
+        var digital = await db.Tenants.SingleOrDefaultAsync(x => x.Code == "SEPAH-DIGITAL");
+        if (digital is null)
+        {
+            digital = new Tenant { Code="SEPAH-DIGITAL", Name="شرکت توسعه فناوری سپه", IsActive=true };
+            db.Tenants.Add(digital);
+            await db.SaveChangesAsync();
+        }
+
+        var memberships = new[]
+        {
+            new TenantMembership { TenantId=primary.Id, UserId=admin.Id, Role="مالک سامانه" },
+            new TenantMembership { TenantId=primary.Id, UserId=ali.Id, Role="مدیر سازمان" },
+            new TenantMembership { TenantId=primary.Id, UserId=sara.Id, Role="کاربر" },
+            new TenantMembership { TenantId=primary.Id, UserId=reza.Id, Role="مشاهده‌گر" },
+            new TenantMembership { TenantId=primary.Id, UserId=narges.Id, Role="کاربر" },
+            new TenantMembership { TenantId=digital.Id, UserId=admin.Id, Role="مالک سامانه" },
+            new TenantMembership { TenantId=digital.Id, UserId=maryam.Id, Role="مدیر سازمان" }
+        };
+        var existing = (await db.TenantMemberships.Select(x => new { x.TenantId, x.UserId }).ToListAsync()).Select(x => (x.TenantId,x.UserId)).ToHashSet();
+        db.TenantMemberships.AddRange(memberships.Where(x => !existing.Contains((x.TenantId,x.UserId))));
+        var digitalCodes = new[] { "PRJ-118", "PRJ-119", "PRJ-120" };
+        var digitalProjects = await db.Projects.Where(x => digitalCodes.Contains(x.Code)).ToListAsync();
+        foreach (var project in digitalProjects) project.TenantId = digital.Id;
+        var maryamAccess = await db.ProjectUserAccess.Where(x => x.UserId == maryam.Id).Select(x => x.ProjectId).ToListAsync();
+        db.ProjectUserAccess.AddRange(digitalProjects.Where(x => !maryamAccess.Contains(x.Id)).Select(x => new ProjectUserAccess
+        {
+            ProjectId=x.Id, UserId=maryam.Id, CanView=true, CanEdit=true, CanManageTeam=true, CanManageWbs=true, CanApprove=true
+        }));
+        await db.SaveChangesAsync();
     }
 
     private static async Task EnsurePortfolioSampleDataAsync(AppDbContext db)
@@ -200,6 +236,40 @@ public static class SeedData
         if (!await manager.IsInRoleAsync(user, role)) await manager.AddToRoleAsync(user, role);
         return user;
     }
+
+    private static Task EnsureTenantSchemaAsync(AppDbContext db) => db.Database.ExecuteSqlRawAsync("""
+        IF OBJECT_ID(N'[Tenants]', N'U') IS NULL
+        BEGIN
+            CREATE TABLE [Tenants] (
+                [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_Tenants] PRIMARY KEY,
+                [Code] nvarchar(450) NOT NULL, [Name] nvarchar(300) NOT NULL,
+                [IsActive] bit NOT NULL CONSTRAINT [DF_Tenants_IsActive] DEFAULT CAST(1 AS bit)
+            );
+            CREATE UNIQUE INDEX [IX_Tenants_Code] ON [Tenants] ([Code]);
+            INSERT INTO [Tenants] ([Code],[Name],[IsActive]) VALUES (N'SEPAH',N'بانک سپه',1);
+        END
+        IF COL_LENGTH(N'Projects', N'TenantId') IS NULL
+        BEGIN
+            ALTER TABLE [Projects] ADD [TenantId] int NOT NULL CONSTRAINT [DF_Projects_TenantId] DEFAULT 1;
+            ALTER TABLE [Projects] ADD CONSTRAINT [FK_Projects_Tenants_TenantId] FOREIGN KEY ([TenantId]) REFERENCES [Tenants] ([Id]);
+            CREATE INDEX [IX_Projects_TenantId] ON [Projects] ([TenantId]);
+        END
+        IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Projects_Code' AND object_id = OBJECT_ID(N'[Projects]'))
+            DROP INDEX [IX_Projects_Code] ON [Projects];
+        IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Projects_TenantId_Code' AND object_id = OBJECT_ID(N'[Projects]'))
+            CREATE UNIQUE INDEX [IX_Projects_TenantId_Code] ON [Projects] ([TenantId],[Code]);
+        IF OBJECT_ID(N'[TenantMemberships]', N'U') IS NULL
+        BEGIN
+            CREATE TABLE [TenantMemberships] (
+                [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_TenantMemberships] PRIMARY KEY,
+                [TenantId] int NOT NULL, [UserId] int NOT NULL, [Role] nvarchar(80) NOT NULL,
+                CONSTRAINT [FK_TenantMemberships_Tenants_TenantId] FOREIGN KEY ([TenantId]) REFERENCES [Tenants] ([Id]) ON DELETE CASCADE,
+                CONSTRAINT [FK_TenantMemberships_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX [IX_TenantMemberships_TenantId_UserId] ON [TenantMemberships] ([TenantId],[UserId]);
+            CREATE INDEX [IX_TenantMemberships_UserId] ON [TenantMemberships] ([UserId]);
+        END
+        """);
 
     private static Task EnsureProjectAccessSchemaAsync(AppDbContext db) => db.Database.ExecuteSqlRawAsync("""
         IF OBJECT_ID(N'[ProjectUserAccess]', N'U') IS NULL
