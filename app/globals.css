@@ -2706,6 +2706,64 @@ body { font-size: 13px; }
 
 @media (max-width:1100px) { .outcome-card-grid { grid-template-columns:1fr; }.kpi-card-grid { grid-template-columns:1fr; }.event-main-grid > .ops-form-grid { grid-template-columns:1fr; }.event-main-grid > .ops-form-grid .wide { grid-column:auto; } }
 
+/* Executive portfolio density and refined project forms */
+.project-executive-strip {
+  margin: -2px 0 15px;
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 9px;
+}
+.project-executive-strip article {
+  min-width: 0;
+  min-height: 65px;
+  padding: 10px 11px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.9);
+  border-radius: 15px;
+  background: linear-gradient(145deg,rgba(255,255,255,.72),rgba(181,231,240,.38));
+  box-shadow: 0 13px 29px rgba(0,62,84,.11), inset 0 1px white, inset 0 -1px rgba(0,105,134,.06);
+  backdrop-filter: blur(23px) saturate(1.5);
+}
+.project-executive-strip article::after { content:""; width:62px; height:62px; position:absolute; left:-30px; bottom:-34px; border-radius:50%; background:#12b8cf; opacity:.1; }
+.project-executive-strip article > span { width:36px; height:36px; flex:0 0 36px; display:grid; place-items:center; color:white; border:1px solid rgba(255,255,255,.68); border-radius:11px; background:linear-gradient(145deg,#19bdd2,#077698); box-shadow:0 9px 19px rgba(0,101,132,.2),inset 0 1px rgba(255,255,255,.4); }
+.project-executive-strip article > div { min-width:0; display:grid; gap:3px; }
+.project-executive-strip small { color:#69858e; font-size:10px; }
+.project-executive-strip strong { overflow:hidden; color:#123f50; font-size:12px; white-space:nowrap; text-overflow:ellipsis; }
+
+.project-full-modal .project-creator,
+.project-full-modal .project-editor { padding: 20px; border-radius: 24px; background:radial-gradient(circle at 88% 0,rgba(18,191,216,.16),transparent 31%),linear-gradient(145deg,rgba(244,253,254,.62),rgba(174,225,235,.36)); }
+.project-full-modal .creator-heading { margin-bottom:14px; padding:15px 17px 14px 64px; align-items:flex-end; border:1px solid rgba(255,255,255,.88); border-radius:19px; background:linear-gradient(145deg,rgba(255,255,255,.7),rgba(190,234,241,.4)); box-shadow:0 15px 34px rgba(0,61,83,.11),inset 0 1px white; }
+.project-full-modal .creator-heading h1 { font-size:clamp(23px,2vw,30px); letter-spacing:-.02em; }
+.project-full-modal .creator-heading > span { border:1px solid rgba(0,126,157,.13); background:rgba(255,255,255,.52); box-shadow:inset 0 1px white; }
+.project-full-modal .creator-tabs { padding:9px; gap:7px; border-radius:18px; background:linear-gradient(145deg,rgba(245,253,254,.66),rgba(179,229,238,.39)); box-shadow:0 15px 35px rgba(0,62,84,.1),inset 0 1px white; }
+.project-full-modal .creator-tabs button { min-height:47px; border:1px solid rgba(0,111,141,.09); background:rgba(255,255,255,.3); }
+.project-full-modal .creator-tabs button:hover { color:#087d9d; border-color:rgba(0,139,171,.18); background:rgba(255,255,255,.62); transform:translateY(-1px); }
+.project-full-modal .creator-tabs button.active { border-color:rgba(255,255,255,.66); background:linear-gradient(135deg,#087b9e,#14b8cb); box-shadow:0 10px 23px rgba(0,103,135,.22),inset 0 1px rgba(255,255,255,.4); }
+.project-full-modal .creator-form { padding:19px; border-radius:20px; background:radial-gradient(circle at 92% 0,rgba(19,190,214,.13),transparent 29%),linear-gradient(145deg,rgba(255,255,255,.67),rgba(190,234,241,.38)); box-shadow:0 20px 44px rgba(0,61,84,.13),inset 0 1px white; }
+.project-full-modal .form-section-title { padding:0 3px 13px; }
+.project-full-modal .form-section-title strong { color:#123f50; font-size:14px; }
+.project-full-modal .creator-actions { position:sticky; bottom:-1px; z-index:3; margin-inline:-4px; padding:13px 4px 3px; background:linear-gradient(0deg,rgba(222,244,248,.98) 62%,transparent); backdrop-filter:blur(12px); }
+
+@media (min-width:1101px) {
+  .menu-sidebar { width:270px; inset:16px 16px 16px auto; padding:13px 11px 11px; border-radius:29px; }
+  .dashboard-main, .projects-workspace { margin-right:306px; }
+  .menu-brand { padding:7px 8px; border-radius:17px; }
+  .menu-brand img { width:46px; height:46px; border-radius:15px; }
+  .menu-brand strong { font-size:17px; }
+  .sidebar-nav { gap:5px; }
+  .sidebar-nav button { min-height:40px; gap:8px; padding:4px 8px; }
+  .sidebar-nav button > span { width:28px; height:28px; flex-basis:28px; }
+  .sidebar-nav button strong { font-size:11.5px; }
+  .menu-sidebar.collapsed { width:82px; }
+  .dashboard-main.sidebar-collapsed, .projects-workspace.sidebar-collapsed { margin-right:122px; }
+}
+@media (max-width:1200px) and (min-width:761px) { .project-executive-strip { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:760px) { .project-executive-strip { grid-template-columns:1fr; }.project-full-modal .creator-heading { padding-left:54px; } }
+
 /* Workbook-aligned WBS, risk and stakeholder registers */
 .excel-coverage-strip { margin: 11px 0; padding: 10px 13px; display:flex; align-items:center; justify-content:space-between; gap:12px; color:#426c79; border:1px solid rgba(255,255,255,.86); border-radius:14px; background:linear-gradient(145deg,rgba(255,255,255,.64),rgba(179,231,239,.38)); box-shadow:0 12px 28px rgba(0,68,91,.1),inset 0 1px white; backdrop-filter:blur(18px) saturate(1.45); }
 .excel-coverage-strip strong { color:#087f9e; }

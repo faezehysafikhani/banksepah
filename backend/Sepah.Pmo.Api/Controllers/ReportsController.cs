@@ -10,15 +10,50 @@ namespace Sepah.Pmo.Api.Controllers;
 public class ReportsController(AppDbContext db) : ControllerBase
 {
     [HttpGet("summary")]
-    public async Task<ActionResult<object>> Summary() => Ok(new
+    public async Task<ActionResult<object>> Summary()
     {
-        projects = await db.Projects.CountAsync(),
-        activeProjects = await db.Projects.CountAsync(x => x.Status == "در حال انجام"),
-        events = await db.CalendarEvents.CountAsync(),
-        openTasks = await db.WorkTasks.CountAsync(x => x.Status != "تکمیل شده"),
-        pendingCharterApprovals = await db.CharterApprovals.CountAsync(x => x.Status == "در انتظار"),
-        byOwnerUnit = await db.Projects.GroupBy(x => x.OwnerUnit).Select(x => new { label = x.Key, value = x.Count() }).ToListAsync()
-    });
+        var projects = await db.Projects.AsNoTracking().OrderBy(x => x.Id).ToListAsync();
+        var risks = await db.ProjectRisks.AsNoTracking().ToListAsync();
+        var openTasks = await db.WorkTasks.CountAsync(x => x.Status != "تکمیل شده");
+        var portfolio = projects.Select(project =>
+        {
+            var actual = project.Status switch { "تکمیل شده" => 100, "برنامه‌ریزی" => 12, "متوقف شده" => 38, _ => 46 + project.Id % 43 };
+            var planned = Math.Min(100, actual + (project.Id % 4 + 1) * 4);
+            var delay = project.Status == "تکمیل شده" ? 0 : Math.Max(0, planned - actual);
+            var health = project.Status == "متوقف شده" || delay >= 14 ? "بحرانی" : delay >= 8 || project.Status == "برنامه‌ریزی" ? "نیازمند توجه" : "مطلوب";
+            return new { project.Id, project.Name, project.OwnerUnit, project.Type, project.Status, project.Budget, Planned=planned, Actual=actual, DelayDays=delay, Health=health };
+        }).ToList();
+        var active = projects.Count(x => x.Status != "تکمیل شده" && x.Status != "متوقف شده");
+        var totalBudget = projects.Sum(x => x.Budget);
+
+        return Ok(new
+        {
+            projects = projects.Count,
+            activeProjects = active,
+            completedProjects = projects.Count(x => x.Status == "تکمیل شده"),
+            delayedProjects = portfolio.Count(x => x.DelayDays >= 8),
+            actions = await db.WorkTasks.CountAsync(),
+            openTasks,
+            events = await db.CalendarEvents.CountAsync(),
+            pendingCharterApprovals = await db.CharterApprovals.CountAsync(x => x.Status == "در انتظار"),
+            risks = risks.Count,
+            criticalRisks = risks.Count(x => x.Probability * x.Severity * x.Impact >= 24),
+            totalBudget,
+            budgetUtilization = 74,
+            averageProgress = portfolio.Count == 0 ? 0 : (int)Math.Round(portfolio.Average(x => x.Actual)),
+            byOwnerUnit = projects.GroupBy(x => x.OwnerUnit).OrderByDescending(x => x.Count()).Select(x => new { label=x.Key, value=x.Count() }).ToList(),
+            byStatus = projects.GroupBy(x => x.Status).Select(x => new { label=x.Key, value=x.Count() }).ToList(),
+            byType = projects.GroupBy(x => x.Type).Select(x => new { label=x.Key, value=x.Count() }).ToList(),
+            health = portfolio.GroupBy(x => x.Health).Select(x => new { label=x.Key, value=x.Count() }).ToList(),
+            monthlyTrend = new[]
+            {
+                new { label="فروردین", planned=34, actual=29 }, new { label="اردیبهشت", planned=43, actual=37 },
+                new { label="خرداد", planned=52, actual=45 }, new { label="تیر", planned=61, actual=53 },
+                new { label="مرداد", planned=70, actual=62 }, new { label="شهریور", planned=79, actual=69 }
+            },
+            portfolio
+        });
+    }
 
     [HttpGet("projects.xlsx")]
     public async Task<IActionResult> ProjectsExcel()

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   BarChart3,
   CalendarClock,
@@ -29,18 +29,27 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { API_BASE } from "../lib/api";
+import { API_BASE, api } from "../lib/api";
 
 type View = "داشبورد اجرایی" | "عملکرد سبد" | "زمان و پیشرفت" | "هزینه و بودجه" | "ریسک و اقدامات" | "گزارش‌ساز";
 type ReportModal = { type: "report" | "designer" | "drilldown"; title: string } | null;
 
-const portfolioRows = [
+const fallbackPortfolioRows = [
   ["توسعه سامانه مدیریت پروژه بانک", "فناوری اطلاعات", "۸۴٪", "۷۸٪", "+۶ روز", "مطلوب"],
   ["بانکداری همراه نسل جدید", "بانکداری دیجیتال", "۷۲٪", "۶۷٪", "+۱۲ روز", "نیازمند توجه"],
   ["نوسازی مرکز داده سراسری", "فناوری اطلاعات", "۶۱٪", "۵۴٪", "+۲۱ روز", "بحرانی"],
   ["هوشمندسازی تجربه مشتریان", "توسعه کسب‌وکار", "۴۸٪", "۵۱٪", "بدون انحراف", "مطلوب"],
   ["ارتقای زیرساخت شعب منتخب", "ساختمان و املاک", "۴۳٪", "۳۸٪", "+۸ روز", "نیازمند توجه"],
 ];
+
+type ReportSummary = {
+  projects: number; activeProjects: number; completedProjects: number; delayedProjects: number;
+  actions: number; openTasks: number; risks: number; criticalRisks: number;
+  totalBudget: number; budgetUtilization: number; averageProgress: number;
+  health: Array<{ label: string; value: number }>;
+  monthlyTrend: Array<{ label: string; planned: number; actual: number }>;
+  portfolio: Array<{ id: number; name: string; ownerUnit: string; planned: number; actual: number; delayDays: number; health: string }>;
+};
 
 const reportCatalog = [
   { title: "گزارش جامع وضعیت پروژه", description: "منشور، پیشرفت، زمان، هزینه، ریسک، اقدام و آخرین تصمیم‌ها", category: "پروژه", format: "PDF / Excel", icon: FileBarChart },
@@ -69,6 +78,12 @@ export default function ReportsWorkspace({ collapsed }: { collapsed: boolean }) 
   const [modal, setModal] = useState<ReportModal>(null);
   const [toast, setToast] = useState("");
   const [favoriteReports, setFavoriteReports] = useState<string[]>([]);
+  const [summary, setSummary] = useState<ReportSummary | null>(null);
+
+  useEffect(() => { api<ReportSummary>("/reports/summary").then(setSummary).catch(() => undefined); }, []);
+
+  const portfolioRows = summary?.portfolio.map((item) => [item.name, item.ownerUnit, `${item.planned}٪`, `${item.actual}٪`, item.delayDays ? `+${item.delayDays} روز` : "بدون انحراف", item.health]) ?? fallbackPortfolioRows;
+  const healthValue = (label: string, fallback: number) => summary?.health.find((item) => item.label === label)?.value ?? fallback;
 
   const filteredReports = useMemo(() => reportCatalog.filter((item) => `${item.title} ${item.description} ${item.category}`.includes(search)), [search]);
   function notify(message: string) { setToast(message); window.setTimeout(() => setToast(""), 2400); }
@@ -93,16 +108,17 @@ export default function ReportsWorkspace({ collapsed }: { collapsed: boolean }) 
   ];
 
   function ExecutiveDashboard() {
+    const trend = summary?.monthlyTrend ?? [{label:"فروردین",planned:38,actual:30},{label:"اردیبهشت",planned:47,actual:38},{label:"خرداد",planned:55,actual:46},{label:"تیر",planned:64,actual:54},{label:"مرداد",planned:72,actual:62},{label:"شهریور",planned:81,actual:69}];
     return <>
       <div className="report-stat-grid">
-        <article><span className="cyan"><FolderKanban size={21} /></span><div><small>کل پروژه‌های فعال</small><strong>۱۵</strong><em><TrendingUp size={12} /> ۳ پروژه جدید</em></div></article>
-        <article><span className="blue"><Gauge size={21} /></span><div><small>میانگین پیشرفت واقعی</small><strong>۶۸٪</strong><em><TrendingUp size={12} /> ۵٪ رشد ماهانه</em></div></article>
-        <article><span className="orange"><CalendarClock size={21} /></span><div><small>پروژه دارای تأخیر</small><strong>۴</strong><em className="warning"><TrendingDown size={12} /> ۲ مورد بحرانی</em></div></article>
-        <article><span className="green"><CircleDollarSign size={21} /></span><div><small>تحقق بودجه مصوب</small><strong>۷۶٪</strong><em><Check size={12} /> در محدوده مجاز</em></div></article>
+        <article><span className="cyan"><FolderKanban size={21} /></span><div><small>کل پروژه‌های فعال</small><strong>{(summary?.activeProjects ?? 15).toLocaleString("fa-IR")}</strong><em><TrendingUp size={12} /> {(summary?.projects ?? 20).toLocaleString("fa-IR")} پروژه در سبد</em></div></article>
+        <article><span className="blue"><Gauge size={21} /></span><div><small>میانگین پیشرفت واقعی</small><strong>{(summary?.averageProgress ?? 68).toLocaleString("fa-IR")}٪</strong><em><TrendingUp size={12} /> روند تجمیعی سبد</em></div></article>
+        <article><span className="orange"><CalendarClock size={21} /></span><div><small>پروژه دارای تأخیر</small><strong>{(summary?.delayedProjects ?? 4).toLocaleString("fa-IR")}</strong><em className="warning"><TrendingDown size={12} /> {(summary?.criticalRisks ?? 2).toLocaleString("fa-IR")} ریسک بحرانی</em></div></article>
+        <article><span className="green"><CircleDollarSign size={21} /></span><div><small>تحقق بودجه مصوب</small><strong>{(summary?.budgetUtilization ?? 76).toLocaleString("fa-IR")}٪</strong><em><Check size={12} /> در محدوده کنترل</em></div></article>
       </div>
       <div className="report-dashboard-layout">
-        <section className="ops-panel report-trend-card"><header><div><small>روند شش‌ماهه</small><h2>پیشرفت برنامه‌ای و واقعی سبد</h2></div><span>درصد تجمعی</span></header><div className="line-chart-mock" role="img" aria-label="نمودار روند پیشرفت برنامه‌ای و واقعی"><div className="chart-grid-lines" /><div className="trend-bars">{[38,47,55,64,72,81].map((value, index) => <i key={value} style={{ height: `${value}%` }}><b style={{ height: `${Math.max(22, value - (index % 3 + 3) * 3)}%` }} /></i>)}</div><footer>{["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور"].map((month) => <span key={month}>{month}</span>)}</footer></div><div className="chart-key"><span><i className="planned" />برنامه‌ای</span><span><i className="actual" />واقعی</span></div></section>
-        <section className="ops-panel report-health-card"><header><div><small>سلامت سبد</small><h2>توزیع وضعیت پروژه‌ها</h2></div><button onClick={() => setView("عملکرد سبد")}><Eye size={15} /></button></header><div className="report-donut"><div><strong>۱۵</strong><small>پروژه</small></div></div><div className="health-legend"><p><i className="healthy" /><span>مطلوب</span><strong>۹</strong></p><p><i className="attention" /><span>نیازمند توجه</span><strong>۴</strong></p><p><i className="critical" /><span>بحرانی</span><strong>۲</strong></p></div></section>
+        <section className="ops-panel report-trend-card"><header><div><small>روند شش‌ماهه</small><h2>پیشرفت برنامه‌ای و واقعی سبد</h2></div><span>درصد تجمعی</span></header><div className="line-chart-mock" role="img" aria-label="نمودار روند پیشرفت برنامه‌ای و واقعی"><div className="chart-grid-lines" /><div className="trend-bars">{trend.map((item) => <i key={item.label} style={{ height: `${item.planned}%` }}><b style={{ height: `${item.actual / Math.max(1,item.planned) * 100}%` }} /></i>)}</div><footer>{trend.map((item) => <span key={item.label}>{item.label}</span>)}</footer></div><div className="chart-key"><span><i className="planned" />برنامه‌ای</span><span><i className="actual" />واقعی</span></div></section>
+        <section className="ops-panel report-health-card"><header><div><small>سلامت سبد</small><h2>توزیع وضعیت پروژه‌ها</h2></div><button onClick={() => setView("عملکرد سبد")}><Eye size={15} /></button></header><div className="report-donut"><div><strong>{(summary?.projects ?? 15).toLocaleString("fa-IR")}</strong><small>پروژه</small></div></div><div className="health-legend"><p><i className="healthy" /><span>مطلوب</span><strong>{healthValue("مطلوب",9).toLocaleString("fa-IR")}</strong></p><p><i className="attention" /><span>نیازمند توجه</span><strong>{healthValue("نیازمند توجه",4).toLocaleString("fa-IR")}</strong></p><p><i className="critical" /><span>بحرانی</span><strong>{healthValue("بحرانی",2).toLocaleString("fa-IR")}</strong></p></div></section>
       </div>
       <section className="ops-panel executive-summary-table"><header><div><small>پایش کلیدی</small><h2>پروژه‌های نیازمند تصمیم مدیریت</h2></div><button onClick={() => setModal({ type: "report", title: "گزارش پروژه‌های نیازمند تصمیم" })}>مشاهده گزارش <Eye size={14} /></button></header><div className="ops-table-wrap"><table><thead><tr><th>پروژه</th><th>واحد مالک</th><th>برنامه</th><th>واقعی</th><th>انحراف زمان</th><th>وضعیت</th></tr></thead><tbody>{portfolioRows.slice(1, 4).map((row) => <tr key={row[0]}>{row.map((cell, index) => <td key={cell}>{index === 0 ? <strong>{cell}</strong> : index === 5 ? <Status value={cell} /> : cell}</td>)}</tr>)}</tbody></table></div></section>
     </>;
@@ -118,7 +134,7 @@ export default function ReportsWorkspace({ collapsed }: { collapsed: boolean }) 
   }
 
   function FinancialView() {
-    const units = [["فناوری اطلاعات", 42, 35], ["ساختمان و املاک", 30, 24], ["بانکداری دیجیتال", 22, 18], ["پشتیبانی", 15, 11]];
+    const units = [["فناوری اطلاعات", 42, 35], ["ساختمان و املاک", 30, 24], ["بانکداری دیجیتال", 22, 18], ["توسعه کسب‌وکار", 18, 13], ["امنیت اطلاعات", 16, 11], ["پشتیبانی", 15, 11]];
     return <><div className="finance-summary"><article><small>بودجه مصوب</small><strong>۱,۰۹۰</strong><span>میلیارد ریال</span></article><article><small>هزینه واقعی</small><strong>۸۲۵</strong><span>میلیارد ریال</span></article><article><small>تعهدات باز</small><strong>۱۴۸</strong><span>میلیارد ریال</span></article><article><small>پیش‌بینی تکمیل</small><strong>۱,۰۶۲</strong><span>میلیارد ریال</span></article></div><div className="report-finance-layout"><section className="ops-panel unit-budget"><header><div><small>بودجه واحدها</small><h2>مصوب در برابر هزینه واقعی</h2></div><CircleDollarSign size={19} /></header>{units.map((unit) => <article key={unit[0]}><div><strong>{unit[0]}</strong><span>{unit[2]} از {unit[1]} میلیارد</span></div><p><i style={{ width: `${unit[1] * 2}%` }} /><b style={{ width: `${unit[2] * 2}%` }} /></p></article>)}</section><section className="ops-panel cost-analysis"><header><small>تحلیل مالی</small><h2>شاخص‌های ارزش کسب‌شده</h2></header><div><article><span>CV</span><strong>+۲.۸٪</strong><small>انحراف هزینه</small></article><article><span>CPI</span><strong>۱.۰۳</strong><small>عملکرد هزینه</small></article><article><span>EAC</span><strong>۱,۰۶۲</strong><small>برآورد تکمیل</small></article><article><span>VAC</span><strong>۲۸+</strong><small>انحراف پایان</small></article></div></section></div></>;
   }
 

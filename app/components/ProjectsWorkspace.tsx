@@ -415,6 +415,13 @@ function ProjectCreator({ kind }: { kind: "waterfall" | "agile" }) {
         <span className={agile ? "agile" : "waterfall"}>{agile ? <RefreshCcw size={19} /> : <GitBranch size={19} />}{agile ? "Agile" : "Waterfall"}</span>
       </header>
 
+      <div className="project-executive-strip">
+        <article><span><FolderKanban size={17} /></span><div><small>شناسه پیش‌نویس</small><strong>{agile ? "AGL-1405" : "PRJ-1405"}</strong></div></article>
+        <article><span><CalendarRange size={17} /></span><div><small>مدل برنامه‌ریزی</small><strong>{agile ? "اسپرینت و بک‌لاگ" : "WBS و خط مبنا"}</strong></div></article>
+        <article><span><ShieldAlert size={17} /></span><div><small>کنترل حاکمیتی</small><strong>منشور، ریسک و تأییدات</strong></div></article>
+        <article><span><CheckCircle2 size={17} /></span><div><small>وضعیت ثبت</small><strong>پیش‌نویس مدیریتی</strong></div></article>
+      </div>
+
       <nav className="creator-tabs" aria-label="مراحل تعریف پروژه">
         {tabs.map(([id, label, Icon]) => (
           <button key={id} className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)} type="button">
@@ -461,6 +468,13 @@ function ProjectEditor({ project, onUpdate }: { project: ProjectItem; onUpdate: 
         </div>
         <span className={agile ? "agile" : "waterfall"}>{agile ? <RefreshCcw size={18} /> : <GitBranch size={18} />}{project.kind}</span>
       </header>
+
+      <div className="project-executive-strip editor-strip">
+        <article><span><FolderKanban size={17} /></span><div><small>کد پروژه</small><strong>PRJ-{String(100 + project.id)}</strong></div></article>
+        <article><span><CalendarRange size={17} /></span><div><small>دوره اجرا</small><strong>{project.start} تا {project.end}</strong></div></article>
+        <article><span><ShieldAlert size={17} /></span><div><small>واحد پاسخگو</small><strong>{project.owner}</strong></div></article>
+        <article><span><CheckCircle2 size={17} /></span><div><small>وضعیت مدیریتی</small><strong>{project.status}</strong></div></article>
+      </div>
 
       <nav className="creator-tabs project-editor-tabs" aria-label="بخش‌های ویرایش پروژه">
         {tabs.map(([id, label, Icon]) => (

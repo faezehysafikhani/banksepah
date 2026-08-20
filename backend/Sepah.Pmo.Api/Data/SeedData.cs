@@ -65,6 +65,8 @@ public static class SeedData
         await db.SaveChangesAsync();
         }
 
+        await EnsurePortfolioSampleDataAsync(db);
+
         var workbookProject = await db.Projects.OrderBy(x => x.Id).FirstAsync();
         if (!await db.ProjectWbsItems.AnyAsync(x => x.ProjectId == workbookProject.Id))
         {
@@ -112,6 +114,78 @@ public static class SeedData
                 db.ProjectUserAccess.Add(new ProjectUserAccess { ProjectId=projects[2].Id, UserId=maryam.Id, CanView=true, CanEdit=true, CanManageTeam=true, CanManageWbs=true, CanApprove=true });
             await db.SaveChangesAsync();
         }
+    }
+
+    private static async Task EnsurePortfolioSampleDataAsync(AppDbContext db)
+    {
+        var samples = new[]
+        {
+            new Project { Code="PRJ-104", Name="هوشمندسازی تجربه مشتریان", Type="چابک", OwnerUnit="توسعه کسب‌وکار", ManagerName="سارا محمدی", Status="در حال انجام", StartDate="۱۴۰۵/۰۱/۲۰", EndDate="۱۴۰۵/۱۰/۳۰", Budget=7600000000, Description="بازطراحی سفر مشتری و استقرار خدمات شخصی‌سازی‌شده در کانال‌های بانک" },
+            new Project { Code="PRJ-105", Name="ارتقای زیرساخت شعب منتخب", Type="آبشاری", OwnerUnit="ساختمان و املاک", ManagerName="علی رضایی", Status="در حال انجام", StartDate="۱۴۰۵/۰۲/۰۱", EndDate="۱۴۰۶/۰۲/۱۵", Budget=18600000000, Description="نوسازی زیرساخت فنی، امنیتی و خدماتی شعب اولویت‌دار" },
+            new Project { Code="PRJ-106", Name="سامانه یکپارچه مدیریت اعتبارات", Type="آبشاری", OwnerUnit="اعتبارات", ManagerName="مدیر سامانه", Status="در حال انجام", StartDate="۱۴۰۴/۱۱/۱۰", EndDate="۱۴۰۵/۱۱/۲۹", Budget=14200000000, Description="یکپارچه‌سازی فرایند ارزیابی، تصویب و پایش تسهیلات" },
+            new Project { Code="PRJ-107", Name="باشگاه مشتریان بانک سپه", Type="چابک", OwnerUnit="بازاریابی", ManagerName="مریم احمدی", Status="برنامه‌ریزی", StartDate="۱۴۰۵/۰۶/۰۱", EndDate="۱۴۰۶/۰۱/۳۱", Budget=5800000000, Description="طراحی باشگاه وفاداری و موتور پیشنهاد هوشمند خدمات" },
+            new Project { Code="PRJ-108", Name="مهاجرت سرویس‌ها به ابر خصوصی", Type="چابک", OwnerUnit="فناوری اطلاعات", ManagerName="رضا کریمی", Status="در حال انجام", StartDate="۱۴۰۵/۰۱/۱۰", EndDate="۱۴۰۵/۰۹/۳۰", Budget=11800000000, Description="انتقال تدریجی سرویس‌های منتخب به زیرساخت ابری امن بانک" },
+            new Project { Code="PRJ-109", Name="مرکز عملیات امنیت نسل جدید", Type="آبشاری", OwnerUnit="امنیت اطلاعات", ManagerName="نرگس حسینی", Status="در حال انجام", StartDate="۱۴۰۴/۱۲/۰۱", EndDate="۱۴۰۵/۰۸/۳۰", Budget=22400000000, Description="توسعه SOC و پایش برخط رخدادهای امنیتی" },
+            new Project { Code="PRJ-110", Name="بهینه‌سازی فرایندهای خزانه‌داری", Type="آبشاری", OwnerUnit="خزانه‌داری", ManagerName="علی رضایی", Status="تکمیل شده", StartDate="۱۴۰۴/۰۳/۱۵", EndDate="۱۴۰۵/۰۳/۲۰", Budget=4600000000, Description="کاهش زمان چرخه و افزایش کنترل‌های مالی خزانه‌داری" },
+            new Project { Code="PRJ-111", Name="سامانه آموزش و توسعه شایستگی", Type="چابک", OwnerUnit="سرمایه انسانی", ManagerName="سارا محمدی", Status="در حال انجام", StartDate="۱۴۰۵/۰۳/۰۱", EndDate="۱۴۰۵/۱۲/۱۵", Budget=3900000000, Description="مدیریت مسیر یادگیری و شایستگی نقش‌های کلیدی بانک" },
+            new Project { Code="PRJ-112", Name="تحول مدیریت اسناد و بایگانی", Type="آبشاری", OwnerUnit="پشتیبانی", ManagerName="مدیر سامانه", Status="متوقف شده", StartDate="۱۴۰۴/۱۰/۲۰", EndDate="۱۴۰۵/۰۹/۲۰", Budget=6700000000, Description="دیجیتال‌سازی اسناد و استقرار گردش مکاتبات امن" },
+            new Project { Code="PRJ-113", Name="راه‌اندازی مرکز تماس هوشمند", Type="چابک", OwnerUnit="توسعه کسب‌وکار", ManagerName="مریم احمدی", Status="در حال انجام", StartDate="۱۴۰۵/۰۲/۱۵", EndDate="۱۴۰۵/۱۱/۱۵", Budget=8200000000, Description="پاسخگویی همه‌کاناله و تحلیل هوشمند درخواست مشتریان" },
+            new Project { Code="PRJ-114", Name="نوسازی شبکه ارتباطی مناطق", Type="آبشاری", OwnerUnit="فناوری اطلاعات", ManagerName="رضا کریمی", Status="در حال انجام", StartDate="۱۴۰۴/۱۲/۱۵", EndDate="۱۴۰۶/۰۱/۳۰", Budget=31500000000, Description="افزایش ظرفیت، پایداری و امنیت شبکه مناطق و شعب" },
+            new Project { Code="PRJ-115", Name="مدیریت هوشمند نقدینگی شعب", Type="چابک", OwnerUnit="امور شعب", ManagerName="علی رضایی", Status="برنامه‌ریزی", StartDate="۱۴۰۵/۰۷/۰۱", EndDate="۱۴۰۶/۰۳/۳۱", Budget=5100000000, Description="پیش‌بینی نیاز نقدینگی و بهینه‌سازی توزیع وجوه شعب" },
+            new Project { Code="PRJ-116", Name="یکپارچه‌سازی پایانه‌های پرداخت", Type="آبشاری", OwnerUnit="بانکداری دیجیتال", ManagerName="مریم احمدی", Status="در حال انجام", StartDate="۱۴۰۵/۰۱/۰۵", EndDate="۱۴۰۵/۱۰/۱۰", Budget=9700000000, Description="استانداردسازی مدیریت پایانه‌ها و پایش کیفیت تراکنش" },
+            new Project { Code="PRJ-117", Name="نظام جامع مدیریت تداوم کسب‌وکار", Type="آبشاری", OwnerUnit="مدیریت ریسک", ManagerName="نرگس حسینی", Status="در حال انجام", StartDate="۱۴۰۵/۰۲/۱۰", EndDate="۱۴۰۶/۰۲/۲۹", Budget=7300000000, Description="تدوین و آزمون برنامه‌های تداوم خدمات حیاتی بانک" },
+            new Project { Code="PRJ-118", Name="داشبورد سودآوری محصولات", Type="چابک", OwnerUnit="معاونت برنامه‌ریزی", ManagerName="سارا محمدی", Status="تکمیل شده", StartDate="۱۴۰۴/۰۵/۰۱", EndDate="۱۴۰۵/۰۲/۳۱", Budget=3200000000, Description="تحلیل سودآوری محصول، مشتری و کانال برای تصمیم‌گیری مدیریتی" },
+            new Project { Code="PRJ-119", Name="بازطراحی مدل ارزیابی پیمانکاران", Type="آبشاری", OwnerUnit="امور اجرایی", ManagerName="علی رضایی", Status="متوقف شده", StartDate="۱۴۰۵/۰۱/۲۵", EndDate="۱۴۰۵/۰۸/۱۵", Budget=2100000000, Description="ایجاد مدل امتیازدهی و کنترل عملکرد پیمانکاران پروژه‌ای" },
+            new Project { Code="PRJ-120", Name="پلتفرم بانکداری باز", Type="چابک", OwnerUnit="بانکداری دیجیتال", ManagerName="مدیر سامانه", Status="برنامه‌ریزی", StartDate="۱۴۰۵/۰۸/۰۱", EndDate="۱۴۰۶/۰۶/۳۱", Budget=16800000000, Description="ارائه APIهای بانکی امن و مدیریت اکوسیستم شرکای تجاری" }
+        };
+
+        var existingCodes = (await db.Projects.Select(x => x.Code).ToListAsync()).ToHashSet();
+        db.Projects.AddRange(samples.Where(x => !existingCodes.Contains(x.Code)));
+        await db.SaveChangesAsync();
+
+        var projects = await db.Projects.OrderBy(x => x.Id).ToListAsync();
+        var wbsProjectIds = await db.ProjectWbsItems.Select(x => x.ProjectId).Distinct().ToListAsync();
+        var riskProjectIds = await db.ProjectRisks.Select(x => x.ProjectId).Distinct().ToListAsync();
+        var stakeholderProjectIds = await db.ProjectStakeholders.Select(x => x.ProjectId).Distinct().ToListAsync();
+        var taskProjectNames = await db.WorkTasks.Select(x => x.ProjectName).Distinct().ToListAsync();
+        var wbsSet = wbsProjectIds.ToHashSet();
+        var riskSet = riskProjectIds.ToHashSet();
+        var stakeholderSet = stakeholderProjectIds.ToHashSet();
+        var taskSet = taskProjectNames.ToHashSet();
+
+        foreach (var project in projects)
+        {
+            var progress = project.Status switch { "تکمیل شده" => 100, "برنامه‌ریزی" => 12, "متوقف شده" => 38, _ => 46 + project.Id % 43 };
+            var planned = Math.Min(100, progress + (project.Id % 4 + 1) * 4);
+            if (!wbsSet.Contains(project.Id))
+            {
+                db.ProjectWbsItems.AddRange(
+                    new ProjectWbsItem { ProjectId=project.Id, Code="1", Name="تحلیل و طراحی راهکار", Duration=35, StartDate=project.StartDate, EndDate="۱۴۰۵/۰۳/۳۱", Weight=25, Owner=project.ManagerName, Planned=100, Actual=Math.Min(100, progress+25), Cost=project.Budget*.18m, PersonHours=640, Importance="زیاد", Complexity="متوسط", PrerequisiteCode="-", RelationType="FS", CollaboratingUnit=project.OwnerUnit, ParticipationPercent=70, Deliverable="سند راهکار و برنامه اجرایی مصوب", Requirements="تأیید نیازمندی‌های کسب‌وکار", QualityControl="بازبینی PMO و واحد مالک" },
+                    new ProjectWbsItem { ProjectId=project.Id, Code="2", Name="پیاده‌سازی و کنترل کیفیت", Duration=120, StartDate="۱۴۰۵/۰۴/۰۱", EndDate="۱۴۰۵/۰۸/۳۰", Weight=50, Owner=project.ManagerName, Planned=planned, Actual=progress, Cost=project.Budget*.58m, PersonHours=2600, Importance="زیاد", Complexity="زیاد", PrerequisiteCode="1", RelationType="FS", CollaboratingUnit="فناوری اطلاعات", ParticipationPercent=55, Deliverable="نسخه قابل بهره‌برداری", Requirements="کنترل امنیت و کارایی", QualityControl="آزمون یکپارچگی و پذیرش کاربر" },
+                    new ProjectWbsItem { ProjectId=project.Id, Code="3", Name="استقرار، آموزش و تحویل", Duration=45, StartDate="۱۴۰۵/۰۹/۰۱", EndDate=project.EndDate, Weight=25, Owner=project.ManagerName, Planned=Math.Max(0, planned-35), Actual=Math.Max(0, progress-40), Cost=project.Budget*.16m, PersonHours=780, Importance="متوسط", Complexity="متوسط", PrerequisiteCode="2", RelationType="FS", CollaboratingUnit="پشتیبانی", ParticipationPercent=40, Deliverable="صورتجلسه تحویل و بسته آموزشی", Requirements="تکمیل آزمون پذیرش", QualityControl="پایش پس از استقرار" });
+            }
+            if (!riskSet.Contains(project.Id))
+            {
+                db.ProjectRisks.AddRange(
+                    new ProjectRisk { ProjectId=project.Id, Title="تأخیر در تأمین منابع تخصصی پروژه", Probability=2 + project.Id%3, Severity=3, Impact=2 + project.Id%2, ResponsePlan="تثبیت برنامه تخصیص منابع و تعریف نیروی جایگزین" },
+                    new ProjectRisk { ProjectId=project.Id, Title="تغییر الزامات کلیدی در زمان اجرا", Probability=2, Severity=2 + project.Id%3, Impact=3, ResponsePlan="فعال‌سازی کمیته کنترل تغییر و تحلیل اثر پیش از تصویب" },
+                    new ProjectRisk { ProjectId=project.Id, Title="عدم آمادگی بهره‌برداران برای تحویل", Probability=1 + project.Id%3, Severity=2, Impact=2, ResponsePlan="اجرای پایلوت، آموزش کاربران کلیدی و سنجش آمادگی" });
+            }
+            if (!stakeholderSet.Contains(project.Id))
+            {
+                db.ProjectStakeholders.AddRange(
+                    new ProjectStakeholder { ProjectId=project.Id, Name="حامی پروژه", RelationType="درون سازمانی", Expectations="تحقق اهداف راهبردی، کنترل انحراف و دریافت گزارش تصمیم‌ساز", Notes="گزارش ماهانه کمیته راهبری" },
+                    new ProjectStakeholder { ProjectId=project.Id, Name=project.OwnerUnit, RelationType="درون سازمانی", Expectations="تحویل کامل محدوده و آمادگی بهره‌برداری", Notes="جلسه پایش دوهفته‌ای با مدیر پروژه" },
+                    new ProjectStakeholder { ProjectId=project.Id, Name="پیمانکار و تأمین‌کنندگان", RelationType="برون سازمانی", Expectations="شفافیت الزامات، پرداخت به‌موقع و مدیریت تغییرات", Notes="کنترل قرارداد و صورت‌وضعیت ماهانه" });
+            }
+            if (!taskSet.Contains(project.Name))
+            {
+                db.WorkTasks.AddRange(
+                    new WorkTask { Title="به‌روزرسانی گزارش پیشرفت ماهانه", ProjectName=project.Name, Assignee=project.ManagerName, Status=project.Status == "تکمیل شده" ? "تکمیل شده" : "در حال انجام" },
+                    new WorkTask { Title="بازبینی ریسک‌ها و اقدامات پاسخ", ProjectName=project.Name, Assignee="کارشناس کنترل پروژه", Status=project.Status == "تکمیل شده" ? "تکمیل شده" : "باز" });
+            }
+        }
+        await db.SaveChangesAsync();
     }
 
     private static async Task<AppUser> EnsureUserAsync(UserManager<AppUser> manager, string username, string displayName, string jobTitle, string department, string role)

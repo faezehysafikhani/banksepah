@@ -42,6 +42,15 @@ type AuthUser = {
   role: string;
 };
 
+type DashboardSummary = {
+  projects: number;
+  activeProjects: number;
+  actions: number;
+  openTasks: number;
+  byOwnerUnit: Array<{ label: string; value: number }>;
+  byStatus: Array<{ label: string; value: number }>;
+};
+
 const navigation = [
   { label: "داشبورد مدیریتی", icon: LayoutDashboard },
   { label: "سبد پروژه‌ها و اقدامات", icon: FolderKanban },
@@ -55,19 +64,11 @@ const navigation = [
   { label: "تنظیمات سامانه", icon: Settings2 },
 ];
 
-const dashboardStats = [
-  { label: "تعداد کل پروژه‌ها", value: "۱۵", detail: "سبد پروژه‌های بانک", icon: FolderKanban, tone: "cyan" },
-  { label: "تعداد کل اقدامات", value: "۱۰", detail: "اقدامات ثبت‌شده", icon: ClipboardList, tone: "blue" },
-  { label: "پروژه‌های در حال انجام", value: "۱۴", detail: "۹۳٪ از کل پروژه‌ها", icon: Target, tone: "green" },
-  { label: "اقدامات در حال انجام", value: "۴", detail: "نیازمند پیگیری", icon: Inbox, tone: "orange" },
-];
-
-const ownerUnits = [
-  { label: "فناوری اطلاعات", value: 6, width: "100%" },
-  { label: "ساختمان و املاک", value: 5, width: "83%" },
-  { label: "امور اجرایی", value: 2, width: "34%" },
-  { label: "پشتیبانی", value: 2, width: "34%" },
-];
+const fallbackSummary: DashboardSummary = {
+  projects: 20, activeProjects: 14, actions: 40, openTasks: 31,
+  byOwnerUnit: [{ label: "فناوری اطلاعات", value: 5 }, { label: "بانکداری دیجیتال", value: 3 }, { label: "ساختمان و املاک", value: 2 }, { label: "توسعه کسب‌وکار", value: 2 }],
+  byStatus: [{ label: "در حال انجام", value: 12 }, { label: "برنامه‌ریزی", value: 4 }, { label: "تکمیل شده", value: 2 }, { label: "متوقف شده", value: 2 }],
+};
 
 const ProjectsWorkspace = dynamic(() => import("./components/ProjectsWorkspace"));
 const OperationsWorkspace = dynamic(() => import("./components/OperationsWorkspace"));
@@ -188,6 +189,7 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [summary, setSummary] = useState<DashboardSummary>(fallbackSummary);
   const projectActive = active === "سبد پروژه‌ها و اقدامات";
   const operationsActive = ["تعریف اقدام", "مرکز وظایف", "مرکز تأییدات", "مدیریت دانش"].includes(active);
 
@@ -195,6 +197,25 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    api<DashboardSummary>("/reports/summary").then(setSummary).catch(() => undefined);
+  }, []);
+
+  const dashboardStats = [
+    { label: "تعداد کل پروژه‌ها", value: summary.projects.toLocaleString("fa-IR"), detail: "سبد پروژه‌های بانک", icon: FolderKanban, tone: "cyan" },
+    { label: "تعداد کل اقدامات", value: summary.actions.toLocaleString("fa-IR"), detail: "اقدامات ثبت‌شده", icon: ClipboardList, tone: "blue" },
+    { label: "پروژه‌های فعال", value: summary.activeProjects.toLocaleString("fa-IR"), detail: `${Math.round(summary.activeProjects / Math.max(1, summary.projects) * 100).toLocaleString("fa-IR")}٪ از کل پروژه‌ها`, icon: Target, tone: "green" },
+    { label: "اقدامات باز", value: summary.openTasks.toLocaleString("fa-IR"), detail: "نیازمند پیگیری", icon: Inbox, tone: "orange" },
+  ];
+  const ownerUnits = summary.byOwnerUnit.slice(0, 7);
+  const ownerMaximum = Math.max(1, ...ownerUnits.map((item) => item.value));
+  const statusColors: Record<string, string> = { "در حال انجام": "#06a9cb", "برنامه‌ریزی": "#f0a04a", "تکمیل شده": "#22aa83", "متوقف شده": "#df6872" };
+  const statusGradient = `conic-gradient(${summary.byStatus.map((item, index) => {
+    const start = summary.byStatus.slice(0, index).reduce((total, status) => total + status.value, 0) / Math.max(1, summary.projects) * 100;
+    const end = start + item.value / Math.max(1, summary.projects) * 100;
+    return `${statusColors[item.label] ?? "#8298a1"} ${start}% ${end}%`;
+  }).join(",")})`;
 
   const persianDate = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
     weekday: "long",
@@ -265,12 +286,11 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
             <article className="chart-card status-chart-card">
               <div className="chart-title"><div><strong>پروژه‌ها بر اساس وضعیت</strong><small>توزیع وضعیت پروژه‌های فعال</small></div><span>دایره‌ای</span></div>
               <div className="donut-layout">
-                <div className="donut-chart" role="img" aria-label="۱۴ پروژه در حال انجام و یک پروژه در برنامه‌ریزی">
-                  <div><strong>۱۵</strong><small>مجموع</small></div>
+                <div className="donut-chart" style={{ background: statusGradient }} role="img" aria-label="توزیع وضعیت پروژه‌های سبد">
+                  <div><strong>{summary.projects.toLocaleString("fa-IR")}</strong><small>مجموع</small></div>
                 </div>
                 <div className="chart-legend">
-                  <p><i className="ongoing" /><span>در حال انجام</span><strong>۱۴</strong></p>
-                  <p><i className="planning" /><span>برنامه‌ریزی</span><strong>۱</strong></p>
+                  {summary.byStatus.map((item) => <p key={item.label}><i style={{ background: statusColors[item.label] ?? "#8298a1" }} /><span>{item.label}</span><strong>{item.value.toLocaleString("fa-IR")}</strong></p>)}
                 </div>
               </div>
             </article>
@@ -284,7 +304,7 @@ function MenuScreen({ user, onLogout }: { user: AuthUser; onLogout: () => void }
                 {ownerUnits.map((unit) => (
                   <div className="owner-row" key={unit.label}>
                     <div><span>{unit.label}</span><strong>{unit.value}</strong></div>
-                    <p><i style={{ width: unit.width }} /></p>
+                    <p><i style={{ width: `${Math.max(9, unit.value / ownerMaximum * 100)}%` }} /></p>
                   </div>
                 ))}
               </div>
